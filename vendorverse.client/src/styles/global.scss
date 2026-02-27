@@ -1,0 +1,51 @@
+@import 'variables';
+@import 'bootstrap/scss/bootstrap';
+
+body {
+    font-family: 'Inter', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    background-color: #f4f7fe;
+    color: #2b3674;
+    margin: 0;
+    padding: 0;
+    -webkit-font-smoothing: antialiased;
+}
+
+/* Custom Utilities */
+.card-shadow {
+    box-shadow: $box-shadow;
+    border-radius: $border-radius;
+    border: none;
+    background-color: #fff;
+    transition: transform $transition-speed ease;
+
+    &:hover {
+        transform: translateY(-2px);
+    }
+}
+
+.text-primary-custom {
+    color: $primary-color !important;
+}
+
+.bg-primary-custom {
+    background-color: $primary-color !important;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+}

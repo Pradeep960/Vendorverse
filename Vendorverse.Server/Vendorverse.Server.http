@@ -1,0 +1,6 @@
+@Vendorverse.Server_HostAddress = http://localhost:5125
+
+GET {{Vendorverse.Server_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

@@ -1,0 +1,27 @@
+@import '../styles/variables';
+
+.layoutContainer {
+    display: flex;
+    min-height: 100vh;
+    background-color: #f4f7fe;
+    color: #2b3674;
+}
+
+.mainContent {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    margin-left: $sidebar-width;
+    transition: margin-left $transition-speed ease;
+    min-height: 100vh;
+}
+
+.mainContentCollapsed {
+    margin-left: $sidebar-collapsed-width;
+}
+
+.contentArea {
+    flex: 1;
+    padding: 30px 40px;
+    overflow-y: auto;
+}

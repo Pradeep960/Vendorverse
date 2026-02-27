@@ -1,0 +1,19 @@
+$primary-color: #4361ee;
+$secondary-color: #3f37c9;
+$success-color: #4cc9f0;
+$info-color: #4895ef;
+$warning-color: #f72585;
+$danger-color: #ef233c;
+$light-color: #f8f9fa;
+$dark-color: #212529;
+$sidebar-width: 260px;
+$sidebar-collapsed-width: 80px;
+$header-height: 70px;
+$border-radius: 12px;
+$transition-speed: 0.3s;
+$box-shadow: 0 4px 20px 0 rgba(0, 0, 0, 0.05);
+
+:export {
+  primaryColor: $primary-color;
+  secondaryColor: $secondary-color;
+}
