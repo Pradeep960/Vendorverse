@@ -1,0 +1,199 @@
+@import '../../styles/variables';
+
+/* Custom Checkbox */
+.customCheckbox {
+  width: 18px;
+  height: 18px;
+  accent-color: $primary-color;
+  cursor: pointer;
+  transition: transform 0.15s ease;
+
+  &:hover {
+    transform: scale(1.15);
+  }
+}
+
+/* Selected Row Highlight */
+.selectedRow {
+  background-color: rgba($primary-color, 0.06) !important;
+  border-left: 3px solid $primary-color;
+
+  td:first-child {
+    padding-left: 13px; // compensate for the 3px border
+  }
+}
+
+/* Clickable Row */
+.clickableRow {
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  border-left: 3px solid transparent;
+
+  &:hover {
+    background-color: rgba($primary-color, 0.03);
+  }
+}
+
+/* Floating Action Bar */
+.actionBarWrapper {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 1050;
+  display: flex;
+  justify-content: center;
+  padding: 0 24px 24px;
+  pointer-events: none;
+}
+
+.actionBar {
+  pointer-events: all;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 28px;
+  background: rgba(33, 37, 41, 0.88);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(255, 255, 255, 0.08) inset;
+  color: #fff;
+  animation: slideUp 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  max-width: 700px;
+  width: 100%;
+}
+
+.selectedCount {
+  font-weight: 600;
+  font-size: 0.9rem;
+  white-space: nowrap;
+  margin-right: auto;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.actionBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 18px;
+  border: none;
+  border-radius: 10px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+
+  &:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  }
+
+  &:active {
+    transform: translateY(0);
+  }
+}
+
+.compareBtn {
+  background: $primary-color;
+  color: #fff;
+
+  &:hover {
+    background: lighten($primary-color, 6%);
+  }
+}
+
+.deleteBtn {
+  background: rgba(239, 35, 60, 0.15);
+  color: #ef233c;
+
+  &:hover {
+    background: rgba(239, 35, 60, 0.25);
+  }
+}
+
+.clearBtn {
+  background: rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.85);
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.2);
+    color: #fff;
+  }
+}
+
+/* Slide-up animation */
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Header checkbox cell */
+.checkboxCell {
+  width: 48px;
+  text-align: center;
+  vertical-align: middle;
+}
+
+/* Search Bar */
+.searchWrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.searchIcon {
+  position: absolute;
+  left: 14px;
+  color: #94a3b8;
+  font-size: 1rem;
+  pointer-events: none;
+}
+
+.searchInput {
+  width: 100%;
+  padding: 10px 40px 10px 40px;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 10px;
+  font-size: 0.9rem;
+  color: #2b3674;
+  background: #fff;
+  transition: all 0.2s ease;
+
+  &:focus {
+    border-color: $primary-color;
+    box-shadow: 0 0 0 3px rgba($primary-color, 0.1);
+    outline: none;
+  }
+
+  &::placeholder {
+    color: #a0aec0;
+  }
+}
+
+.searchClear {
+  position: absolute;
+  right: 10px;
+  background: none;
+  border: none;
+  color: #94a3b8;
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  border-radius: 50%;
+  transition: all 0.15s ease;
+
+  &:hover {
+    color: #475569;
+    background: #f1f5f9;
+  }
+}
