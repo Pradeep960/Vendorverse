@@ -8,4 +8,9 @@ export interface Vendor {
     contactEmail: string;
     phone: string;
     matchScore?: number;
+    pricingMin?: number;
+    pricingMax?: number;
+    availableQuantity?: number;
+    yearEstablished?: number;
+    isIsoCertified?: boolean;
 }
