@@ -45,7 +45,7 @@ const Vendors: React.FC = () => {
                 return v.name.toLowerCase().includes(q) ||
                     v.category.toLowerCase().includes(q) ||
                     v.location.toLowerCase().includes(q) ||
-                    v.contactEmail.toLowerCase().includes(q);
+                    v.email.toLowerCase().includes(q);
             }).map(v => v.id);
             if (prev.size === filteredIds.length) {
                 return new Set();
@@ -79,7 +79,7 @@ const Vendors: React.FC = () => {
             v.name.toLowerCase().includes(q) ||
             v.category.toLowerCase().includes(q) ||
             v.location.toLowerCase().includes(q) ||
-            v.contactEmail.toLowerCase().includes(q)
+            v.email.toLowerCase().includes(q)
         );
     }, [vendors, searchQuery]);
 
@@ -96,6 +96,8 @@ const Vendors: React.FC = () => {
                     <button
                         className="btn btn-outline-primary d-flex align-items-center"
                         onClick={() => setShowQuoteModal(true)}
+                        disabled={selectedIds.size === 0}
+                        title={selectedIds.size === 0 ? "Select vendors from the list first" : "Request quotes from selected vendors"}
                     >
                         <FiFileText className="me-2" /> Request Quote
                     </button>
@@ -172,7 +174,7 @@ const Vendors: React.FC = () => {
                                         <td><span className="badge bg-light text-primary border">{vendor.category}</span></td>
                                         <td className="text-secondary">{vendor.location}</td>
                                         <td className="text-secondary">
-                                            <div>{vendor.contactEmail}</div>
+                                            <div>{vendor.email}</div>
                                             <small>{vendor.phone}</small>
                                         </td>
                                     </tr>

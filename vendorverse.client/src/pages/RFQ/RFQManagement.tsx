@@ -4,10 +4,26 @@ import Loader from '../../components/Loader/Loader';
 import { FiPlus, FiEye, FiClock, FiCheckCircle } from 'react-icons/fi';
 import { getRFQs } from '../../services/apiService';
 import type { RFQ } from '../../models/RFQ';
+import RFQCreateModal from '../../components/RFQCreateModal/RFQCreateModal';
+import RFQDetailsModal from '../../components/RFQDetailsModal/RFQDetailsModal';
 
 const RFQManagement: React.FC = () => {
     const [rfqs, setRFQs] = useState<RFQ[]>([]);
     const [loading, setLoading] = useState(true);
+    const [showCreateModal, setShowCreateModal] = useState(false);
+    const [viewingRFQ, setViewingRFQ] = useState<RFQ | null>(null);
+
+    const fetchRFQs = () => {
+        setLoading(true);
+        getRFQs().then(data => {
+            setRFQs(data);
+            setLoading(false);
+        });
+    };
+
+    useEffect(() => {
+        fetchRFQs();
+    }, []);
 
     useEffect(() => {
         getRFQs().then(data => {
@@ -34,7 +50,10 @@ const RFQManagement: React.FC = () => {
                     <h3 className="fw-bold text-dark mb-1">RFQ Management</h3>
                     <p className="text-secondary mb-0">Create and monitor your requests for quotation.</p>
                 </div>
-                <button className="btn btn-primary d-flex align-items-center shadow-sm">
+                <button
+                    className="btn btn-primary d-flex align-items-center shadow-sm"
+                    onClick={() => setShowCreateModal(true)}
+                >
                     <FiPlus className="me-2" /> Create RFQ
                 </button>
             </div>
@@ -58,7 +77,7 @@ const RFQManagement: React.FC = () => {
                                         </div>
                                         <div>
                                             <span className="text-muted d-block text-uppercase" style={{ fontSize: '10px' }}>Deadline</span>
-                                            {new Date(rfq.deadline).toLocaleDateString()}
+                                            {rfq.deadline ? new Date(rfq.deadline).toLocaleDateString() : 'N/A'}
                                         </div>
                                         <div>
                                             <span className="text-muted d-block text-uppercase" style={{ fontSize: '10px' }}>Vendors</span>
@@ -68,13 +87,29 @@ const RFQManagement: React.FC = () => {
                                 </div>
 
                                 <div className="d-flex flex-md-column justify-content-center gap-2">
-                                    <button className="btn btn-outline-primary shadow-sm"><FiEye className="me-2" /> View Details</button>
+                                    <button
+                                        className="btn btn-outline-primary shadow-sm"
+                                        onClick={() => setViewingRFQ(rfq)}
+                                    >
+                                        <FiEye className="me-2" /> View Details
+                                    </button>
                                 </div>
                             </div>
                         </Card>
                     </div>
                 ))}
             </div>
+            <RFQCreateModal
+                show={showCreateModal}
+                onClose={() => setShowCreateModal(false)}
+                onSuccess={fetchRFQs}
+            />
+            {viewingRFQ && (
+                <RFQDetailsModal
+                    rfq={viewingRFQ}
+                    onClose={() => setViewingRFQ(null)}
+                />
+            )}
         </div>
     );
 };

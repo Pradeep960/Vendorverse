@@ -7,8 +7,11 @@ export const mockQuotes: Quote[] = [
         vendorId: "v2",
         price: 45000,
         deliveryTimeDays: 14,
+        delivery: 14,
         submittedAt: "2026-02-12T11:00:00Z",
-        features: ["Include 3-year warranty", "Free shipping", "Installation included"]
+        features: ["Include 3-year warranty", "Free shipping", "Installation included"],
+        notes: "",
+        files: []
     },
     {
         id: "q-002",
@@ -16,8 +19,11 @@ export const mockQuotes: Quote[] = [
         vendorId: "v3",
         price: 42000,
         deliveryTimeDays: 21,
+        delivery: 21,
         submittedAt: "2026-02-14T09:30:00Z",
-        features: ["Standard 1-year warranty", "Expedited shipping available", "Remote setup guide"]
+        features: ["Standard 1-year warranty", "Expedited shipping available", "Remote setup guide"],
+        notes: "",
+        files: []
     },
     {
         id: "q-003",
@@ -25,7 +31,10 @@ export const mockQuotes: Quote[] = [
         vendorId: "v1",
         price: 120000,
         deliveryTimeDays: 30,
+        delivery: 30,
         submittedAt: "2026-01-20T14:00:00Z",
-        features: ["24/7 Support", "Dedicated account manager", "Custom dashboard"]
+        features: ["24/7 Support", "Dedicated account manager", "Custom dashboard"],
+        notes: "",
+        files: []
     }
 ];

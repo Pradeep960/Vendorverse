@@ -3,6 +3,9 @@ import { FiFileText, FiSend, FiEye, FiPlus, FiTrash2 } from 'react-icons/fi';
 import { generateRFQPdf } from '../../utils/generateRFQPdf';
 import type { RFQFormData, RFQItem } from '../../utils/generateRFQPdf';
 import type { Vendor } from '../../models/Vendor';
+import type { RFQ } from '../../models/RFQ';
+import { saveRFQ } from '../../services/apiService';
+import EmailModal from '../EmailModal/EmailModal';
 import styles from './RequestQuoteModal.module.scss';
 
 interface RequestQuoteModalProps {
@@ -40,8 +43,11 @@ const emptyForm: RFQFormData = {
 const RequestQuoteModal: React.FC<RequestQuoteModalProps> = ({ show, onClose, selectedVendors }) => {
     const [formData, setFormData] = useState<RFQFormData>({ ...emptyForm, items: [createEmptyItem()] });
     const [sent, setSent] = useState(false);
+    const [showEmailModal, setShowEmailModal] = useState(false);
+    const [createdRFQ, setCreatedRFQ] = useState<RFQ | null>(null);
 
-    if (!show) return null;
+    // This remains early return so we don't render anything if neither modal is shown
+    if (!show && !showEmailModal) return null;
 
     const updateField = <K extends keyof RFQFormData>(key: K, value: RFQFormData[K]) => {
         setFormData(prev => ({ ...prev, [key]: value }));
@@ -82,18 +88,40 @@ const RequestQuoteModal: React.FC<RequestQuoteModalProps> = ({ show, onClose, se
     const itemsValid = formData.items.length > 0 && formData.items.every(i => i.part.trim() !== '' && i.quantity > 0);
     const isFormValid = itemsValid && formData.location.trim() !== '';
 
+    // Log validation state to help debug if needed
+    console.log("Validation State:", { itemsValid, locationValid: formData.location.trim() !== '', isFormValid, selectedVendors: selectedVendors.length });
+
     const handlePreview = () => {
         const vendorNames = selectedVendors.map(v => v.name);
         generateRFQPdf(formData, vendorNames.length > 0 ? vendorNames : undefined);
     };
 
-    const handleSend = () => {
-        setSent(true);
-        setTimeout(() => {
-            setSent(false);
-            setFormData({ ...emptyForm, items: [createEmptyItem()] });
-            onClose();
-        }, 1800);
+    const handleSend = async () => {
+        const title = `RFQ for ${formData.items.map(i => i.part).join(', ')}`;
+        const description = `Location: ${formData.location}\nMin Reqs: ${formData.minimumRequirements.join(', ')}\nISO: ${formData.isoCertified ? 'Yes' : 'No'}`;
+        const quantity = formData.items.reduce((acc, curr) => acc + curr.quantity, 0);
+        const budget = formData.pricingMax || 0;
+
+        const newRFQ: RFQ = {
+            id: `rfq-${Date.now()}`,
+            title,
+            description,
+            quantity,
+            budget,
+            status: 'Pending',
+            createdAt: new Date().toISOString(),
+            vendorsTargeted: selectedVendors.map(v => v.id),
+        };
+
+        await saveRFQ(newRFQ);
+        setCreatedRFQ(newRFQ);
+        setShowEmailModal(true);
+    };
+
+    const handleEmailSent = () => {
+        setShowEmailModal(false);
+        setFormData({ ...emptyForm, items: [createEmptyItem()] });
+        onClose();
     };
 
     const handleClose = () => {
@@ -101,6 +129,19 @@ const RequestQuoteModal: React.FC<RequestQuoteModalProps> = ({ show, onClose, se
         setSent(false);
         onClose();
     };
+
+    if (showEmailModal && createdRFQ) {
+        return (
+            <EmailModal
+                rfq={createdRFQ}
+                vendors={selectedVendors}
+                onClose={handleEmailSent}
+            />
+        );
+    }
+
+    // Needed right before return so the actual form hides if the parent 'show' is false but we were still capturing it (shouldn't happen with the logic above)
+    if (!show) return null;
 
     return (
         <>
@@ -255,7 +296,7 @@ const RequestQuoteModal: React.FC<RequestQuoteModalProps> = ({ show, onClose, se
                                                 className={styles.formInput}
                                                 placeholder="Min"
                                                 min={0}
-                                                value={formData.pricingMin || ''}
+                                                value={formData.pricingMin}
                                                 onChange={e => updateField('pricingMin', parseInt(e.target.value) || 0)}
                                             />
                                             <span className={styles.rangeSeparator}>to</span>
@@ -264,7 +305,7 @@ const RequestQuoteModal: React.FC<RequestQuoteModalProps> = ({ show, onClose, se
                                                 className={styles.formInput}
                                                 placeholder="Max"
                                                 min={0}
-                                                value={formData.pricingMax || ''}
+                                                value={formData.pricingMax}
                                                 onChange={e => updateField('pricingMax', parseInt(e.target.value) || 0)}
                                             />
                                         </div>
