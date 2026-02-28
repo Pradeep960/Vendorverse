@@ -1,20 +1,21 @@
 import React, { useState, useRef } from 'react';
 import {
-    FiSearch, FiMapPin, FiBox, FiHash, 
+    FiSearch, FiMapPin, FiBox, FiHash,
     FiShield, FiDollarSign, FiRotateCcw, FiCheckCircle,
-    FiXCircle, FiEye, FiAward, FiX, FiAlertCircle
+    FiXCircle, FiEye, FiAward, FiX, FiAlertCircle, FiFileText,
+    FiMail, FiPhone, FiGlobe
 } from 'react-icons/fi';
 import Loader from '../../components/Loader/Loader';
 import type { Vendor, VendorResponse } from '../../models/Vendor';
 import { sendVendors } from '../../services/apiService';
-import { mockVendors } from '../../mock/vendors';
+import RequestQuoteModal from '../../components/RequestQuoteModal/RequestQuoteModal';
 
 interface SearchForm {
     part: string;
     certifications: string[];
     location: string;
     budget: number;
-    quantity: number ;
+    quantity: number;
     // year: number;
 }
 
@@ -56,6 +57,8 @@ const VendorSearch: React.FC = () => {
     const [showModal, setShowModal] = useState(false);
     const [showOtherInput, setShowOtherInput] = useState(false);
     const [otherCertInput, setOtherCertInput] = useState('');
+    const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+    const [showQuoteModal, setShowQuoteModal] = useState(false);
     const modalRef = useRef<HTMLDivElement>(null);
 
     // --- Validation ---
@@ -141,12 +144,23 @@ const VendorSearch: React.FC = () => {
             let filtered = [...result];
             setVendors(filtered);
             setSearched(true);
+            setSelectedIds(new Set()); // Clear selection on new search
             handleReset();
         } catch (error) {
             setSearched(true);
         } finally {
             setLoading(false);
         }
+    };
+
+    // --- Selection Management ---
+    const toggleSelect = (id: string) => {
+        setSelectedIds(prev => {
+            const next = new Set(prev);
+            if (next.has(id)) next.delete(id);
+            else next.add(id);
+            return next;
+        });
     };
 
     // --- Reset ---
@@ -177,12 +191,18 @@ const VendorSearch: React.FC = () => {
     };
 
     // --- Helpers to read certifications from different mock shapes ---
-    const getVendorCerts = (v: VendorResponse) => ((v as any).certifications ?? (v as any).certifications_found ?? []) as string[];
+    const getVendorCerts = (v: VendorResponse) => {
+        const certs = (v as any).all_certifications ||
+            (v as any).compliance?.certifications_found ||
+            (v as any).certifications ||
+            [];
+        return Array.isArray(certs) ? certs : [];
+    };
     const vendorHasIso = (v: VendorResponse) => getVendorCerts(v).some(c => c.toLowerCase().includes('iso'));
     const searchVendorsApi = (formdata: SearchForm) => {
         return sendVendors(formdata);
     };
-    
+
     return (
         <div>
             {/* Header */}
@@ -191,12 +211,22 @@ const VendorSearch: React.FC = () => {
                     <h3 className="fw-bold text-dark mb-1">Discover Vendors</h3>
                     <p className="text-secondary mb-0">Search and find the best vendors for your needs.</p>
                 </div>
-                <button
-                    className="btn btn-primary d-flex align-items-center shadow-sm"
-                    onClick={() => setShowModal(true)}
-                >
-                    <FiSearch className="me-2" /> Search Vendors
-                </button>
+                <div className="d-flex gap-2">
+                    {selectedIds.size > 0 && (
+                        <button
+                            className="btn btn-outline-primary d-flex align-items-center shadow-sm"
+                            onClick={() => setShowQuoteModal(true)}
+                        >
+                            <FiFileText className="me-2" /> Request Quote ({selectedIds.size})
+                        </button>
+                    )}
+                    <button
+                        className="btn btn-primary d-flex align-items-center shadow-sm"
+                        onClick={() => setShowModal(true)}
+                    >
+                        <FiSearch className="me-2" /> Search Vendors
+                    </button>
+                </div>
             </div>
 
             {/* Modal */}
@@ -309,9 +339,8 @@ const VendorSearch: React.FC = () => {
                                             {CERTIFICATION_OPTIONS.map(cert => (
                                                 <div className="col-md-6" key={cert}>
                                                     <label
-                                                        className={`bg-light rounded-3 p-2 px-3 d-flex align-items-center ${
-                                                            isCertChecked(cert) ? 'border border-primary' : 'border border-transparent'
-                                                        }`}
+                                                        className={`bg-light rounded-3 p-2 px-3 d-flex align-items-center ${isCertChecked(cert) ? 'border border-primary' : 'border border-transparent'
+                                                            }`}
                                                         style={{ cursor: 'pointer', transition: 'border-color 0.2s ease' }}
                                                     >
                                                         <input
@@ -390,9 +419,24 @@ const VendorSearch: React.FC = () => {
                                         (e.currentTarget as HTMLElement).style.boxShadow = '0 2px 12px rgba(0,0,0,0.08)';
                                     }}
                                 >
-                                    <div className="card-body p-4">
+                                    <div className="card-body p-4 position-relative">
+                                        {/* Selection Checkbox */}
+                                        <div
+                                            className="position-absolute"
+                                            style={{ top: '15px', left: '15px', zIndex: 10 }}
+                                            onClick={(e) => e.stopPropagation()}
+                                        >
+                                            <input
+                                                type="checkbox"
+                                                className="form-check-input border-primary"
+                                                style={{ width: '1.2rem', height: '1.2rem', cursor: 'pointer' }}
+                                                checked={selectedIds.has((vendor as any).id || (vendor as any).rank?.toString() || '')}
+                                                onChange={() => toggleSelect((vendor as any).id || (vendor as any).rank?.toString() || '')}
+                                            />
+                                        </div>
+
                                         {/* Vendor Name & ISO Badge */}
-                                        <div className="d-flex justify-content-between align-items-start mb-3">
+                                        <div className="d-flex justify-content-between align-items-start mb-3 ps-4">
                                             <h5 className="fw-bold text-dark mb-0">{(vendor as any).name || (vendor as any).vendor_name}</h5>
                                             {vendorHasIso(vendor) ? (
                                                 <span className="badge bg-success bg-opacity-10 text-success d-flex align-items-center gap-1 px-2 py-1">
@@ -435,17 +479,36 @@ const VendorSearch: React.FC = () => {
                                                     )}
                                                 </div>
                                             </div>
+
+                                            {/* Contact Info */}
+                                            <div className="pt-2 mt-2 border-top">
+                                                <div className="d-flex align-items-center mb-1">
+                                                    <FiMail className="me-2 text-primary" size={14} />
+                                                    <span className="text-dark">{(vendor as any).contact_email || (vendor as any).email || 'contact@vendor.com'}</span>
+                                                </div>
+                                                <div className="d-flex align-items-center">
+                                                    <FiPhone className="me-2 text-primary" size={14} />
+                                                    <span className="text-dark">{(vendor as any).contact_phone || (vendor as any).phone || '+1 (555) 000-0000'}</span>
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
 
                                     {/* Footer */}
-                                    <div className="card-footer bg-transparent border-top p-3 d-flex justify-content-end">
+                                    <div className="card-footer bg-transparent border-top p-3 d-flex justify-content-between align-items-center">
+                                        <div className="text-success small fw-bold">
+                                            {((vendor as any).url || (vendor as any).website) && (
+                                                <a href={(vendor as any).url || (vendor as any).website} target="_blank" rel="noreferrer" className="text-decoration-none text-success">
+                                                    <FiGlobe className="me-1" /> Visit Website
+                                                </a>
+                                            )}
+                                        </div>
                                         <button
-                                            className="btn btn-outline-primary btn-sm d-flex align-items-center rounded-pill px-3"
+                                            className="btn btn-primary btn-sm d-flex align-items-center rounded-pill px-3"
                                             onClick={() => handleViewDetails(vendor)}
                                             aria-label={`View details for ${vendor.vendor_name || vendor.vendor_name || 'vendor'}`}
                                         >
-                                            <FiEye className="me-1" /> View Details
+                                            <FiEye className="me-1" /> Details
                                         </button>
                                     </div>
                                 </div>
@@ -468,6 +531,23 @@ const VendorSearch: React.FC = () => {
                     <p className="text-secondary">Click <strong>"Search Vendors"</strong> to find vendors matching your requirements.</p>
                 </div>
             )}
+            {/* Request Quote Modal */}
+            <RequestQuoteModal
+                show={showQuoteModal}
+                onClose={() => setShowQuoteModal(false)}
+                selectedVendors={vendors
+                    .filter(v => selectedIds.has((v as any).id || (v as any).rank?.toString() || ''))
+                    .map(v => ({
+                        ...v,
+                        id: (v as any).id || (v as any).rank?.toString() || '',
+                        name: (v as any).vendor_name || (v as any).name || 'Unknown Vendor',
+                        category: (v as any).market_segment || (v as any).category || 'Other',
+                        location: (v as any).location_exact || (v as any).location || 'Unknown',
+                        email: (v as any).contact_email || (v as any).email || 'contact@vendor.com',
+                        phone: (v as any).contact_phone || (v as any).phone || 'N/A'
+                    } as unknown as Vendor))
+                }
+            />
         </div>
     );
 };

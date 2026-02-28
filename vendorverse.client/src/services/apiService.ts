@@ -10,7 +10,7 @@ import { mockVendors } from '../mock/vendors';
 import { mockQuotes } from '../mock/quotes';
 import { mockScores } from '../mock/scores';
 
-const API_URL = "https://wines-wyoming-alternate-comprehensive.trycloudflare.com/";
+const API_URL = "http://localhost:7067/";
 const apiClient = axios.create({
     baseURL: API_URL,
     headers: {
