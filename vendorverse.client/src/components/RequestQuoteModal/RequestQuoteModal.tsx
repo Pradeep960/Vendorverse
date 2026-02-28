@@ -1,7 +1,10 @@
 import React, { useState } from 'react';
-import { FiFileText, FiSend, FiEye, FiPlus, FiTrash2 } from 'react-icons/fi';
+import {
+    FiFileText, FiSend, FiEye, FiSearch, FiMapPin, FiBox, FiHash,
+    FiDollarSign, FiShield, FiRotateCcw, FiAlertCircle, FiAward, FiX
+} from 'react-icons/fi';
 import { generateRFQPdf } from '../../utils/generateRFQPdf';
-import type { RFQFormData, RFQItem } from '../../utils/generateRFQPdf';
+import type { RFQFormData } from '../../utils/generateRFQPdf';
 import type { Vendor } from '../../models/Vendor';
 import type { RFQ } from '../../models/RFQ';
 import { saveRFQ } from '../../services/apiService';
@@ -14,93 +17,166 @@ interface RequestQuoteModalProps {
     selectedVendors: Vendor[];
 }
 
-const MINIMUM_REQUIREMENTS_OPTIONS = [
+// Using the same form structure as VendorSearch.tsx
+interface SearchForm {
+    part: string;
+    certifications: string[];
+    location: string;
+    budget: number;
+    quantity: number;
+}
+
+const CERTIFICATION_OPTIONS = [
     'ISO 9001',
     'ISO 14001',
     'ISO 27001',
+    'AS9100',
+    'IATF 16949',
     'SOC 2 Type II',
-    'CE Marking',
-    'UL Listed',
-    'RoHS Compliant',
-    'REACH Compliant',
+    'FSC Certified',
+    'Other',
 ];
 
-const currentYear = new Date().getFullYear();
-const yearOptions = Array.from({ length: 30 }, (_, i) => currentYear - i);
-
-const createEmptyItem = (): RFQItem => ({ part: '', quantity: 1 });
-
-const emptyForm: RFQFormData = {
-    items: [createEmptyItem()],
+const initialForm: SearchForm = {
+    part: '',
+    certifications: [],
     location: '',
-    minimumRequirements: [],
-    isoCertified: false,
-    pricingMin: 0,
-    pricingMax: 0,
-    yearOfManufacturing: currentYear,
+    budget: 0,
+    quantity: 0,
 };
 
+interface FormErrors {
+    part?: string;
+    quantity?: string;
+    location?: string;
+    pricingRange?: string;
+    certifications?: string;
+    otherCertText?: string;
+}
+
 const RequestQuoteModal: React.FC<RequestQuoteModalProps> = ({ show, onClose, selectedVendors }) => {
-    const [formData, setFormData] = useState<RFQFormData>({ ...emptyForm, items: [createEmptyItem()] });
+    const [form, setForm] = useState<SearchForm>(initialForm);
+    const [errors, setErrors] = useState<FormErrors>({});
     const [sent, setSent] = useState(false);
     const [showEmailModal, setShowEmailModal] = useState(false);
     const [createdRFQ, setCreatedRFQ] = useState<RFQ | null>(null);
+    const [showOtherInput, setShowOtherInput] = useState(false);
+    const [otherCertInput, setOtherCertInput] = useState('');
 
     // This remains early return so we don't render anything if neither modal is shown
     if (!show && !showEmailModal) return null;
 
-    const updateField = <K extends keyof RFQFormData>(key: K, value: RFQFormData[K]) => {
-        setFormData(prev => ({ ...prev, [key]: value }));
+    // --- Validation (same as VendorSearch.tsx) ---
+    const validateForm = (): FormErrors => {
+        const newErrors: FormErrors = {};
+        if (!form.part.trim()) newErrors.part = 'Part is required';
+        if (!form.quantity) newErrors.quantity = 'Quantity is required';
+        else if (Number(form.quantity) <= 0) newErrors.quantity = 'Must be greater than 0';
+        if (!form.location.trim()) newErrors.location = 'Location is required';
+        if (form.budget && Number(form.budget) < 0) newErrors.pricingRange = 'Budget cannot be negative';
+        return newErrors;
     };
 
-    // ─── Item CRUD ───
-    const updateItem = (index: number, field: keyof RFQItem, value: string | number) => {
-        setFormData(prev => {
-            const newItems = [...prev.items];
-            newItems[index] = { ...newItems[index], [field]: value };
-            return { ...prev, items: newItems };
+    // --- Form field change (same as VendorSearch.tsx) ---
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+        const { name, value } = e.target;
+        const parsedValue = (name === 'budget' || name === 'quantity') ? Number(value) : value;
+        setForm(prev => ({ ...prev, [name]: parsedValue }));
+        setErrors(prev => {
+            const updated = { ...prev };
+            delete updated[name as keyof FormErrors];
+            if (name === 'budget') delete updated.pricingRange;
+            return updated;
         });
     };
 
-    const addItem = () => {
-        setFormData(prev => ({ ...prev, items: [...prev.items, createEmptyItem()] }));
+    // --- Certification change (same as VendorSearch.tsx) ---
+    const handleCertificationChange = (cert: string) => {
+        if (cert === 'Other') {
+            if (showOtherInput) {
+                const customVal = otherCertInput.trim();
+                if (customVal) {
+                    setForm(prev => ({
+                        ...prev,
+                        certifications: prev.certifications.filter(c => c !== customVal),
+                    }));
+                }
+                setOtherCertInput('');
+                setShowOtherInput(false);
+            } else {
+                setShowOtherInput(true);
+            }
+        } else {
+            setForm(prev => {
+                const certs = prev.certifications.includes(cert)
+                    ? prev.certifications.filter(c => c !== cert)
+                    : [...prev.certifications, cert];
+                return { ...prev, certifications: certs };
+            });
+        }
     };
 
-    const removeItem = (index: number) => {
-        setFormData(prev => ({
-            ...prev,
-            items: prev.items.filter((_, i) => i !== index),
-        }));
-    };
+    // --- Other certification text input (same as VendorSearch.tsx) ---
+    const handleOtherCertInputChange = (value: string) => {
+        const prevVal = otherCertInput.trim();
+        const newVal = value.trim();
+        setOtherCertInput(value);
 
-    const toggleRequirement = (req: string) => {
-        setFormData(prev => {
-            const exists = prev.minimumRequirements.includes(req);
-            return {
-                ...prev,
-                minimumRequirements: exists
-                    ? prev.minimumRequirements.filter(r => r !== req)
-                    : [...prev.minimumRequirements, req],
-            };
+        setForm(prev => {
+            let certs = prevVal
+                ? prev.certifications.filter(c => c !== prevVal)
+                : [...prev.certifications];
+            if (newVal && !certs.includes(newVal)) {
+                certs = [...certs, newVal];
+            }
+            return { ...prev, certifications: certs };
         });
     };
 
-    const itemsValid = formData.items.length > 0 && formData.items.every(i => i.part.trim() !== '' && i.quantity > 0);
-    const isFormValid = itemsValid && formData.location.trim() !== '';
+    // --- Helper: is a cert checkbox checked? ---
+    const isCertChecked = (cert: string) =>
+        cert === 'Other' ? showOtherInput : form.certifications.includes(cert);
 
-    // Log validation state to help debug if needed
-    console.log("Validation State:", { itemsValid, locationValid: formData.location.trim() !== '', isFormValid, selectedVendors: selectedVendors.length });
+    // --- Reset (same as VendorSearch.tsx) ---
+    const handleReset = () => {
+        setForm({ ...initialForm });
+        setErrors({});
+        setOtherCertInput('');
+        setShowOtherInput(false);
+    };
+
+    const itemsValid = form.part.trim() !== '' && form.quantity > 0;
+    const isFormValid = itemsValid && form.location.trim() !== '';
+
+    // Helper to get vendor name safely
+    const getVendorName = (v: Vendor) => (v as any).name || (v as any).vendor_name || '';
+    const getVendorId = (v: Vendor) => (v as any).id || '';
 
     const handlePreview = () => {
-        const vendorNames = selectedVendors.map(v => v.name);
-        generateRFQPdf(formData, vendorNames.length > 0 ? vendorNames : undefined);
+        const rfqFormData: RFQFormData = {
+            items: [{ part: form.part, quantity: form.quantity }],
+            location: form.location,
+            minimumRequirements: form.certifications,
+            isoCertified: form.certifications.some(c => c.toLowerCase().includes('iso')),
+            pricingMin: 0,
+            pricingMax: form.budget,
+            yearOfManufacturing: new Date().getFullYear(),
+        };
+        const vendorNames = selectedVendors.map(v => getVendorName(v));
+        generateRFQPdf(rfqFormData, vendorNames.length > 0 ? vendorNames : undefined);
     };
 
     const handleSend = async () => {
-        const title = `RFQ for ${formData.items.map(i => i.part).join(', ')}`;
-        const description = `Location: ${formData.location}\nMin Reqs: ${formData.minimumRequirements.join(', ')}\nISO: ${formData.isoCertified ? 'Yes' : 'No'}`;
-        const quantity = formData.items.reduce((acc, curr) => acc + curr.quantity, 0);
-        const budget = formData.pricingMax || 0;
+        const validationErrors = validateForm();
+        if (Object.keys(validationErrors).length > 0) {
+            setErrors(validationErrors);
+            return;
+        }
+        
+        const title = `RFQ for ${form.part}`;
+        const description = `Location: ${form.location}\nMin Reqs: ${form.certifications.join(', ')}\nISO: ${form.certifications.some(c => c.toLowerCase().includes('iso')) ? 'Yes' : 'No'}`;
+        const quantity = form.quantity;
+        const budget = form.budget || 0;
 
         const newRFQ: RFQ = {
             id: `rfq-${Date.now()}`,
@@ -110,7 +186,7 @@ const RequestQuoteModal: React.FC<RequestQuoteModalProps> = ({ show, onClose, se
             budget,
             status: 'Pending',
             createdAt: new Date().toISOString(),
-            vendorsTargeted: selectedVendors.map(v => v.id),
+            vendorsTargeted: selectedVendors.map(v => getVendorId(v)),
         };
 
         await saveRFQ(newRFQ);
@@ -120,13 +196,16 @@ const RequestQuoteModal: React.FC<RequestQuoteModalProps> = ({ show, onClose, se
 
     const handleEmailSent = () => {
         setShowEmailModal(false);
-        setFormData({ ...emptyForm, items: [createEmptyItem()] });
+        setForm({ ...initialForm });
         onClose();
     };
 
     const handleClose = () => {
-        setFormData({ ...emptyForm, items: [createEmptyItem()] });
+        setForm({ ...initialForm });
+        setErrors({});
         setSent(false);
+        setOtherCertInput('');
+        setShowOtherInput(false);
         onClose();
     };
 
@@ -188,141 +267,120 @@ const RequestQuoteModal: React.FC<RequestQuoteModalProps> = ({ show, onClose, se
                                 </div>
                             ) : (
                                 <form onSubmit={e => e.preventDefault()}>
-                                    {/* ─── Items Section ─── */}
-                                    <div className={styles.formGroup}>
-                                        <div className="d-flex justify-content-between align-items-center mb-2">
-                                            <label className="mb-0">Parts / Items *</label>
-                                            <button
-                                                type="button"
-                                                className={styles.addItemBtn}
-                                                onClick={addItem}
-                                            >
-                                                <FiPlus size={14} /> Add Item
-                                            </button>
+                                    {/* Part & Quantity - Same as VendorSearch.tsx */}
+                                    <div className="row g-3 mb-3">
+                                        <div className="col-md-6">
+                                            <label htmlFor="part" className="form-label text-secondary small fw-bold mb-1">
+                                                Part <span className="text-danger">*</span>
+                                            </label>
+                                            <div className={`input-group ${errors.part ? 'has-validation' : ''}`}>
+                                                <span className={`input-group-text bg-light border-end-0 ${errors.part ? 'border-danger' : ''}`}><FiBox className="text-muted" /></span>
+                                                <input
+                                                    type="text" id="part" name="part"
+                                                    className={`form-control bg-light border-start-0 ps-0 ${errors.part ? 'is-invalid' : ''}`}
+                                                    placeholder="e.g. Bearings, PCB..."
+                                                    value={form.part} onChange={handleChange}
+                                                />
+                                            </div>
+                                            {errors.part && <div className="text-danger small mt-1 d-flex align-items-center"><FiAlertCircle className="me-1" size={12} />{errors.part}</div>}
+                                        </div>
+                                        <div className="col-md-6">
+                                            <label htmlFor="quantity" className="form-label text-secondary small fw-bold mb-1">
+                                                Quantity <span className="text-danger">*</span>
+                                            </label>
+                                            <div className={`input-group ${errors.quantity ? 'has-validation' : ''}`}>
+                                                <span className={`input-group-text bg-light border-end-0 ${errors.quantity ? 'border-danger' : ''}`}><FiHash className="text-muted" /></span>
+                                                <input
+                                                    type="number" id="quantity" name="quantity"
+                                                    className={`form-control bg-light border-start-0 ps-0 ${errors.quantity ? 'is-invalid' : ''}`}
+                                                    placeholder="e.g. 500" min="1"
+                                                    value={form.quantity} onChange={handleChange}
+                                                />
+                                            </div>
+                                            {errors.quantity && <div className="text-danger small mt-1 d-flex align-items-center"><FiAlertCircle className="me-1" size={12} />{errors.quantity}</div>}
+                                        </div>
+                                    </div>
+
+                                    {/* Location & Budget - Same as VendorSearch.tsx */}
+                                    <div className="row g-3 mb-3">
+                                        <div className="col-md-6">
+                                            <label htmlFor="location" className="form-label text-secondary small fw-bold mb-1">
+                                                Location <span className="text-danger">*</span>
+                                            </label>
+                                            <div className={`input-group ${errors.location ? 'has-validation' : ''}`}>
+                                                <span className={`input-group-text bg-light border-end-0 ${errors.location ? 'border-danger' : ''}`}><FiMapPin className="text-muted" /></span>
+                                                <input
+                                                    type="text" id="location" name="location"
+                                                    className={`form-control bg-light border-start-0 ps-0 ${errors.location ? 'is-invalid' : ''}`}
+                                                    placeholder="e.g. New York, London..."
+                                                    value={form.location} onChange={handleChange}
+                                                />
+                                            </div>
+                                            {errors.location && <div className="text-danger small mt-1 d-flex align-items-center"><FiAlertCircle className="me-1" size={12} />{errors.location}</div>}
                                         </div>
 
-                                        <div className={styles.itemsList}>
-                                            {formData.items.map((item, idx) => (
-                                                <div key={idx} className={styles.itemBox}>
-                                                    <div className={styles.itemNumber}>{idx + 1}</div>
-                                                    <div className={styles.itemFields}>
-                                                        <input
-                                                            type="text"
-                                                            className={styles.formInput}
-                                                            placeholder="Part / Item name"
-                                                            value={item.part}
-                                                            onChange={e => updateItem(idx, 'part', e.target.value)}
-                                                        />
-                                                        <input
-                                                            type="number"
-                                                            className={`${styles.formInput} ${styles.qtyInput}`}
-                                                            placeholder="Qty"
-                                                            min={1}
-                                                            value={item.quantity}
-                                                            onChange={e => updateItem(idx, 'quantity', parseInt(e.target.value) || 0)}
-                                                        />
-                                                    </div>
-                                                    {formData.items.length > 1 && (
-                                                        <button
-                                                            type="button"
-                                                            className={styles.removeItemBtn}
-                                                            onClick={() => removeItem(idx)}
-                                                            title="Remove item"
-                                                        >
-                                                            <FiTrash2 size={14} />
-                                                        </button>
-                                                    )}
+                                        <div className="col-md-6">
+                                            <label htmlFor="budget" className="form-label text-secondary small fw-bold mb-1">Budget</label>
+                                            <div className={`input-group ${errors.pricingRange ? 'has-validation' : ''}`}>
+                                                <span className={`input-group-text bg-light border-end-0 ${errors.pricingRange ? 'border-danger' : ''}`}><FiDollarSign className="text-muted" /></span>
+                                                <input
+                                                    type="number" id="budget" name="budget"
+                                                    className={`form-control bg-light border-start-0 ps-0 ${errors.pricingRange ? 'is-invalid' : ''}`}
+                                                    placeholder="e.g. 100" min="0"
+                                                    value={form.budget} onChange={handleChange}
+                                                />
+                                            </div>
+                                            {errors.pricingRange && <div className="text-danger small mt-1 d-flex align-items-center"><FiAlertCircle className="me-1" size={12} />{errors.pricingRange}</div>}
+                                        </div>
+                                    </div>
+
+                                    {/* Certifications - Same as VendorSearch.tsx */}
+                                    <hr className="my-3" />
+                                    <h6 className="fw-bold text-dark mb-3">
+                                        <FiShield className="me-2 text-primary" />Certified By
+                                    </h6>
+
+                                    <div className="row g-2 mb-3">
+                                        {CERTIFICATION_OPTIONS.map(cert => (
+                                            <div className="col-md-6" key={cert}>
+                                                <label
+                                                    className={`bg-light rounded-3 p-2 px-3 d-flex align-items-center ${
+                                                        isCertChecked(cert) ? 'border border-primary' : 'border border-transparent'
+                                                    }`}
+                                                    style={{ cursor: 'pointer', transition: 'border-color 0.2s ease' }}
+                                                >
+                                                    <input
+                                                        className="form-check-input me-2"
+                                                        type="checkbox"
+                                                        id={`cert-${cert.replace(/\s+/g, '-')}`}
+                                                        checked={isCertChecked(cert)}
+                                                        onChange={() => handleCertificationChange(cert)}
+                                                        style={{ cursor: 'pointer' }}
+                                                    />
+                                                    <span className="text-dark small">{cert}</span>
+                                                </label>
+                                            </div>
+                                        ))}
+
+                                        {/* Other certification text input */}
+                                        {showOtherInput && (
+                                            <div className="col-12 mt-2">
+                                                <div className="input-group">
+                                                    <span className="input-group-text bg-light border-end-0">
+                                                        <FiAward className="text-muted" />
+                                                    </span>
+                                                    <input
+                                                        type="text"
+                                                        id="otherCertInput"
+                                                        className="form-control bg-light border-start-0 ps-0"
+                                                        placeholder="Enter certification name..."
+                                                        value={otherCertInput}
+                                                        onChange={(e) => handleOtherCertInputChange(e.target.value)}
+                                                        onClick={(e) => e.stopPropagation()}
+                                                    />
                                                 </div>
-                                            ))}
-                                        </div>
-                                    </div>
-
-                                    {/* Location */}
-                                    <div className={styles.formGroup}>
-                                        <label>Delivery Location *</label>
-                                        <input
-                                            type="text"
-                                            className={styles.formInput}
-                                            placeholder="e.g. New York, USA"
-                                            value={formData.location}
-                                            onChange={e => updateField('location', e.target.value)}
-                                        />
-                                    </div>
-
-                                    {/* Minimum Requirements */}
-                                    <div className={styles.formGroup}>
-                                        <label>Minimum Requirements</label>
-                                        <div className={styles.checkboxGroup}>
-                                            {MINIMUM_REQUIREMENTS_OPTIONS.map(req => {
-                                                const checked = formData.minimumRequirements.includes(req);
-                                                return (
-                                                    <label
-                                                        key={req}
-                                                        className={`${styles.checkboxLabel} ${checked ? styles.checkboxLabelChecked : ''}`}
-                                                    >
-                                                        <input
-                                                            type="checkbox"
-                                                            checked={checked}
-                                                            onChange={() => toggleRequirement(req)}
-                                                        />
-                                                        {req}
-                                                    </label>
-                                                );
-                                            })}
-                                        </div>
-                                    </div>
-
-                                    {/* ISO Certified */}
-                                    <div className={styles.formGroup}>
-                                        <label
-                                            className={`${styles.checkboxLabel} ${formData.isoCertified ? styles.checkboxLabelChecked : ''}`}
-                                            style={{ display: 'inline-flex' }}
-                                        >
-                                            <input
-                                                type="checkbox"
-                                                checked={formData.isoCertified}
-                                                onChange={e => updateField('isoCertified', e.target.checked)}
-                                            />
-                                            ISO Certified Required
-                                        </label>
-                                    </div>
-
-                                    {/* Pricing Range */}
-                                    <div className={styles.formGroup}>
-                                        <label>Pricing Range (USD)</label>
-                                        <div className={styles.rangeRow}>
-                                            <input
-                                                type="number"
-                                                className={styles.formInput}
-                                                placeholder="Min"
-                                                min={0}
-                                                value={formData.pricingMin}
-                                                onChange={e => updateField('pricingMin', parseInt(e.target.value) || 0)}
-                                            />
-                                            <span className={styles.rangeSeparator}>to</span>
-                                            <input
-                                                type="number"
-                                                className={styles.formInput}
-                                                placeholder="Max"
-                                                min={0}
-                                                value={formData.pricingMax}
-                                                onChange={e => updateField('pricingMax', parseInt(e.target.value) || 0)}
-                                            />
-                                        </div>
-                                    </div>
-
-                                    {/* Year of Manufacturing */}
-                                    <div className={styles.formGroup}>
-                                        <label>Year of Manufacturing</label>
-                                        <select
-                                            className={styles.formSelect}
-                                            value={formData.yearOfManufacturing}
-                                            onChange={e => updateField('yearOfManufacturing', parseInt(e.target.value))}
-                                        >
-                                            {yearOptions.map(yr => (
-                                                <option key={yr} value={yr}>{yr}</option>
-                                            ))}
-                                        </select>
+                                            </div>
+                                        )}
                                     </div>
                                 </form>
                             )}
@@ -331,11 +389,11 @@ const RequestQuoteModal: React.FC<RequestQuoteModalProps> = ({ show, onClose, se
                         {/* Footer */}
                         {!sent && (
                             <div className={`modal-footer ${styles.modalFooter}`}>
-                                {selectedVendors.length > 0 && (
+                                {/* {selectedVendors.length > 0 && (
                                     <span className={styles.vendorInfo}>
                                         <strong>{selectedVendors.length}</strong> vendor{selectedVendors.length !== 1 ? 's' : ''} selected
                                     </span>
-                                )}
+                                )} */}
 
                                 <button
                                     type="button"

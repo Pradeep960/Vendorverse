@@ -1,18 +1,18 @@
 import axios from 'axios';
 import { storageService } from './storageService';
-import type { Vendor } from '../models/Vendor';
+import type { Vendor, VendorResponse } from '../models/Vendor';
 import type { RFQ } from '../models/RFQ';
 import type { Quote } from '../models/Quote';
 import type { VendorScore } from '../models/Score';
 
 // Mock data
 import { mockVendors } from '../mock/vendors';
-import { mockRFQs } from '../mock/rfqs';
 import { mockQuotes } from '../mock/quotes';
 import { mockScores } from '../mock/scores';
 
+const API_URL = "http://localhost:7067/";
 const apiClient = axios.create({
-    baseURL: import.meta.env.VITE_API_URL || '/api',
+    baseURL: API_URL,
     headers: {
         'Content-Type': 'application/json',
     },
@@ -21,28 +21,25 @@ const apiClient = axios.create({
 // Helper to simulate API delay
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
+export const sendVendors = async (payload: any) => {
+    try {
+        // explicitly post to '/vendor_search' just in case the baseURL ever changes
+        const response = await apiClient.post("vendor-search", payload);
+        return response.data.vendors as VendorResponse[];
+    } catch (error: any) {
+        throw error;
+    }
+};
+// --- Existing mock-based API methods ---
+
 export const getVendors = async (): Promise<Vendor[]> => {
     await delay(500);
     let vendors = storageService.getVendors();
     if (vendors.length === 0) {
-        vendors = mockVendors;
-        storageService.saveVendors(vendors);
+        //vendors = mockVendors;
+        //storageService.saveVendors(vendors);
     }
     return vendors;
-};
-
-export const searchVendors = async (query?: { category?: string; location?: string }): Promise<Vendor[]> => {
-    await delay(500);
-    let results = [...(await getVendors())];
-    if (query) {
-        if (query.category) {
-            results = results.filter(v => v.category.toLowerCase().includes(query.category!.toLowerCase()));
-        }
-        if (query.location) {
-            results = results.filter(v => v.location.toLowerCase().includes(query.location!.toLowerCase()));
-        }
-    }
-    return results;
 };
 
 export const getRFQs = async (): Promise<RFQ[]> => {
@@ -119,3 +116,4 @@ export const getVendorScores = async (): Promise<VendorScore[]> => {
 };
 
 export default apiClient;
+

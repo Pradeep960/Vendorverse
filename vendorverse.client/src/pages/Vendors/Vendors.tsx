@@ -3,8 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import Card from '../../components/Card/Card';
 import Loader from '../../components/Loader/Loader';
 import RequestQuoteModal from '../../components/RequestQuoteModal/RequestQuoteModal';
-import { FiPlus, FiTrash2, FiBarChart2, FiX, FiFileText, FiSearch } from 'react-icons/fi';
-import { getVendors } from '../../services/apiService';
+import VendorModal from '../../components/VendorModal/VendorModal';
+import { FiPlus, FiTrash2, FiBarChart2, FiX, FiFileText, FiSearch, FiEdit2 } from 'react-icons/fi';
+import { getVendors, deleteVendors } from '../../services/apiService';
 import type { Vendor } from '../../models/Vendor';
 import styles from './Vendors.module.scss';
 
@@ -13,15 +14,22 @@ const Vendors: React.FC = () => {
     const [loading, setLoading] = useState(true);
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
     const [showQuoteModal, setShowQuoteModal] = useState(false);
+    const [showVendorModal, setShowVendorModal] = useState(false);
+    const [editingVendor, setEditingVendor] = useState<Vendor | null>(null);
     const [searchQuery, setSearchQuery] = useState('');
     const navigate = useNavigate();
 
-    useEffect(() => {
+    const fetchVendors = useCallback(() => {
+        setLoading(true);
         getVendors().then(data => {
             setVendors(data);
             setLoading(false);
         });
     }, []);
+
+    useEffect(() => {
+        fetchVendors();
+    }, [fetchVendors]);
 
     // Toggle a single vendor selection
     const toggleSelect = useCallback((id: string) => {
@@ -60,16 +68,36 @@ const Vendors: React.FC = () => {
     }, []);
 
     // Delete selected vendors
-    const deleteSelected = useCallback(() => {
-        setVendors(prev => prev.filter(v => !selectedIds.has(v.id)));
-        setSelectedIds(new Set());
-    }, [selectedIds]);
+    const handleDeleteSelected = useCallback(async () => {
+        if (window.confirm(`Are you sure you want to delete ${selectedIds.size} vendor(s)?`)) {
+            await deleteVendors(Array.from(selectedIds));
+            setSelectedIds(new Set());
+            fetchVendors();
+        }
+    }, [selectedIds, fetchVendors]);
 
     // Compare selected vendors — navigate to comparison page
     const compareSelected = useCallback(() => {
         const ids = Array.from(selectedIds).join(',');
         navigate(`/comparison?vendors=${ids}`);
     }, [selectedIds, navigate]);
+
+    // Edit selected vendor
+    const handleEditVendor = useCallback(() => {
+        if (selectedIds.size === 1) {
+            const id = Array.from(selectedIds)[0];
+            const vendor = vendors.find(v => v.id === id);
+            if (vendor) {
+                setEditingVendor(vendor);
+                setShowVendorModal(true);
+            }
+        }
+    }, [selectedIds, vendors]);
+
+    const handleAddVendor = () => {
+        setEditingVendor(null);
+        setShowVendorModal(true);
+    };
 
     // Filter vendors based on search query
     const filteredVendors = useMemo(() => {
@@ -101,7 +129,10 @@ const Vendors: React.FC = () => {
                     >
                         <FiFileText className="me-2" /> Request Quote
                     </button>
-                    <button className="btn btn-primary d-flex align-items-center">
+                    <button
+                        className="btn btn-primary d-flex align-items-center"
+                        onClick={handleAddVendor}
+                    >
                         <FiPlus className="me-2" /> Add Vendor
                     </button>
                 </div>
@@ -193,7 +224,7 @@ const Vendors: React.FC = () => {
             </Card>
 
             {/* Floating Action Bar */}
-            {selectedIds.size > 0 && (
+            {/* {selectedIds.size > 0 && (
                 <div className={styles.actionBarWrapper}>
                     <div className={styles.actionBar}>
                         <span className={styles.selectedCount}>
@@ -201,17 +232,27 @@ const Vendors: React.FC = () => {
                         </span>
 
                         <button
-                            className={`${styles.actionBtn} ${styles.compareBtn}`}
-                            onClick={compareSelected}
-                            disabled={selectedIds.size < 2}
-                            title={selectedIds.size < 2 ? 'Select at least 2 vendors to compare' : 'Compare selected vendors'}
+                            className={`${styles.actionBtn} ${styles.editBtn}`}
+                            onClick={handleEditVendor}
+                            disabled={selectedIds.size !== 1}
+                            title={selectedIds.size !== 1 ? 'Select exactly 1 vendor to edit' : 'Edit selected vendor'}
                         >
-                            <FiBarChart2 /> Compare
+                            <FiEdit2 /> Edit
                         </button>
+
+                        {selectedIds.size >= 2 && (
+                            <button
+                                className={`${styles.actionBtn} ${styles.compareBtn}`}
+                                onClick={compareSelected}
+                                title="Compare selected vendors"
+                            >
+                                <FiBarChart2 /> Compare
+                            </button>
+                        )}
 
                         <button
                             className={`${styles.actionBtn} ${styles.deleteBtn}`}
-                            onClick={deleteSelected}
+                            onClick={handleDeleteSelected}
                         >
                             <FiTrash2 /> Delete
                         </button>
@@ -224,13 +265,21 @@ const Vendors: React.FC = () => {
                         </button>
                     </div>
                 </div>
-            )}
+            )} */}
 
             {/* Request Quote Modal */}
             <RequestQuoteModal
                 show={showQuoteModal}
                 onClose={() => setShowQuoteModal(false)}
                 selectedVendors={vendors.filter(v => selectedIds.has(v.id))}
+            />
+
+            {/* Vendor Add/Edit Modal */}
+            <VendorModal
+                show={showVendorModal}
+                editingVendor={editingVendor}
+                onClose={() => setShowVendorModal(false)}
+                onSuccess={fetchVendors}
             />
         </div>
     );
