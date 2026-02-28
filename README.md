@@ -23,11 +23,12 @@ App.tsx
 
 
 ## Tech Stack
-##Backend
+Backend
 - Python 
 - Serp API
 - LLM
-##Front End
+
+Frontend
 - React & TypeScript 
 - Graph API
 
