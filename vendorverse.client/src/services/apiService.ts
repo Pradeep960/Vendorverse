@@ -6,11 +6,11 @@ import type { Quote } from '../models/Quote';
 import type { VendorScore } from '../models/Score';
 
 // Mock data
-import { mockVendors } from '../mock/vendors';
+import { mockVendors, RegisteredVendors } from '../mock/vendors';
 import { mockQuotes } from '../mock/quotes';
 import { mockScores } from '../mock/scores';
 
-const API_URL = "https://parameter-june-ranking-mutual.trycloudflare.com/";
+const API_URL = "https://enlargement-kathy-asn-metabolism.trycloudflare.com/";
 const apiClient = axios.create({
     baseURL: API_URL,
     headers: {
@@ -36,7 +36,7 @@ export const getVendors = async (): Promise<Vendor[]> => {
     await delay(500);
     let vendors = storageService.getVendors();
     if (vendors.length === 0) {
-        vendors = mockVendors;
+        vendors = RegisteredVendors;
         storageService.saveVendors(vendors);
     }
     return vendors;
