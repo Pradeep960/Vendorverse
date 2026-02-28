@@ -1,73 +1,87 @@
-# React + TypeScript + Vite
+Organizations, especially MSMEs, struggle with inefficient vendor procurement processes driven by manual work. Vendor shortlisting relies on static Excel sheets and scattered data sources, making it difficult to identify reliable suppliers quickly.
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+RFQ responses often arrive in unstructured formats such as emails, PDFs, and spreadsheets, forcing procurement teams to manually extract pricing, delivery timelines, and contractual details. This results in repetitive effort, comparison errors, delayed decision-making, and missed cost-saving opportunities.
 
-Currently, two official plugins are available:
+Overall, sourcing decisions take weeks and require significant manual intervention, reducing operational efficiency.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## Installation
+git clone "https://github.com/Pradeep960/Vendorverse"
+cd project
+npm install
+npm run dev
 
-## React Compiler
+##Entry Point 
+App.tsx
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Features
+- Vendor Search using AI
+- RFQ Generator
+- Email Notification Service
+- Quotation Upload
+- AI Comparison Engine
 
-## Expanding the ESLint configuration
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+## Tech Stack
+##Backend
+- Python 
+- Serp API
+- LLM
+##Front End
+- React & TypeScript 
+- Graph API
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+## Application Flow
+1.  **Authentication**: Users log in via Microsoft Authentication Library (MSAL).
+2.  **Dashboard**: Landing page with a summary of activities and metrics.
+3.  **Vendor Discovery**:
+    *   **Search**: Filter vendors by part name, certifications (ISO, etc.), location, and budget.
+    *   **Selection**: Choose one or more vendors to initiate a Request for Quotation (RFQ).
+4.  **RFQ Management**:
+    *   **Generation**: Create a new RFQ with specific requirements and attach supporting documents (e.g., drawings).
+    *   **Tracking**: View the status of all RFQs (Pending, Received, Completed).
+5.  **Vendor Response**:
+    *   **Submission**: Vendors access a unique submission link provided by the system.
+    *   **Quotation Entry**: Vendors input their pricing, lead times, and terms.
+6.  **Analysis & Decision**:
+    *   **Quotes Analysis**: Review and compare vendor responses side-by-side.
+    *   **Vendor Comparison**: Detailed evaluation using a comparison engine.
+    *   **Scorecards**: Assess vendor performance based on historical data and current quotes.
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+### Sequence Diagram
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```mermaid
+sequenceDiagram
+    actor User
+    actor Vendor
+    participant Dashboard
+    participant VendorSearch as Vendor Search
+    participant RFQManager as RFQ Management
+    participant API as API Service
+    participant VendorSubmit as Vendor Submission Page
+    participant Analytics as Comparison & Scorecard
+
+    User->>Dashboard: Log in (MSAL)
+    Dashboard->>VendorSearch: Search & Filter Vendors
+    VendorSearch->>API: Query matching vendors
+    API-->>VendorSearch: List of vendors
+    VendorSearch->>RFQManager: Select vendors & Create RFQ
+    RFQManager->>API: Save RFQ & Send notification
+    
+    Note over Vendor, VendorSubmit: Vendor receives RFQ URL
+    Vendor->>VendorSubmit: Enter Quotation Data
+    VendorSubmit->>API: Save Quote
+
+    User->>Analytics: Review Quotes & Compare
+    Analytics-->>User: Visual Comparison & Scorecards
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## Core Modules
+-   **`src/pages/VendorSearch`**: Advanced filtering and vendor discovery interface.
+-   **`src/pages/RFQ`**: Management of Requests for Quotation and their lifecycle.
+-   **`src/pages/VendorSubmit`**: Public-facing page for vendors to submit their pricing and terms.
+-   **`src/pages/Comparison` & `src/pages/Scorecard`**: Decision-support tools for evaluating vendor proposals.
+-   **`src/services/apiService.ts`**: Centralized API client using Axios, integrated with `storageService` for local data persistence.
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+
+

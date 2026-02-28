@@ -1,10 +1,8 @@
 import React, { useState } from 'react';
 import {
-    FiFileText, FiSend, FiEye, FiSearch, FiMapPin, FiBox, FiHash,
-    FiDollarSign, FiShield, FiRotateCcw, FiAlertCircle, FiAward, FiX
+    FiSend, FiMapPin, FiBox, FiHash,
+    FiDollarSign, FiShield, FiAlertCircle, FiAward
 } from 'react-icons/fi';
-import { generateRFQPdf } from '../../utils/generateRFQPdf';
-import type { RFQFormData } from '../../utils/generateRFQPdf';
 import type { Vendor } from '../../models/Vendor';
 import type { RFQ } from '../../models/RFQ';
 import { saveRFQ } from '../../services/apiService';
@@ -137,34 +135,12 @@ const RequestQuoteModal: React.FC<RequestQuoteModalProps> = ({ show, onClose, se
     const isCertChecked = (cert: string) =>
         cert === 'Other' ? showOtherInput : form.certifications.includes(cert);
 
-    // --- Reset (same as VendorSearch.tsx) ---
-    const handleReset = () => {
-        setForm({ ...initialForm });
-        setErrors({});
-        setOtherCertInput('');
-        setShowOtherInput(false);
-    };
-
     const itemsValid = form.part.trim() !== '' && form.quantity > 0;
     const isFormValid = itemsValid && form.location.trim() !== '';
 
     // Helper to get vendor name safely
     const getVendorName = (v: Vendor) => (v as any).name || (v as any).vendor_name || '';
     const getVendorId = (v: Vendor) => (v as any).id || '';
-
-    const handlePreview = () => {
-        const rfqFormData: RFQFormData = {
-            items: [{ part: form.part, quantity: form.quantity }],
-            location: form.location,
-            minimumRequirements: form.certifications,
-            isoCertified: form.certifications.some(c => c.toLowerCase().includes('iso')),
-            pricingMin: 0,
-            pricingMax: form.budget,
-            yearOfManufacturing: new Date().getFullYear(),
-        };
-        const vendorNames = selectedVendors.map(v => getVendorName(v));
-        generateRFQPdf(rfqFormData, vendorNames.length > 0 ? vendorNames : undefined);
-    };
 
     const handleSend = async () => {
         const validationErrors = validateForm();
@@ -241,22 +217,28 @@ const RequestQuoteModal: React.FC<RequestQuoteModalProps> = ({ show, onClose, se
                     className="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable"
                     onClick={e => e.stopPropagation()}
                 >
-                    <div className={`modal-content ${styles.modalContent}`}>
-                        {/* Header */}
-                        <div className={`modal-header ${styles.modalHeader}`}>
-                            <div className="d-flex align-items-center gap-2">
-                                <FiFileText size={20} />
-                                <h5 className={`modal-title ${styles.modalTitle}`}>Request for Quote</h5>
-                            </div>
-                            <button
-                                type="button"
-                                className={`btn-close ${styles.closeBtn}`}
-                                onClick={handleClose}
-                            />
+                    <div className={`modal-content border-0 shadow-lg`} style={{ position: 'relative' }}>
+                        {/* Close button */}
+                        <button
+                            type="button"
+                            className="btn p-0 d-flex align-items-center justify-content-center"
+                            style={{
+                                position: 'absolute', top: '14px', right: '16px', zIndex: 10,
+                                background: 'none', border: 'none',
+                            }}
+                            onClick={handleClose}
+                            aria-label="Close"
+                        >
+                            <FiAward size={20} className="text-muted" />
+                        </button>
+
+                        {/* Header - Matching VendorSearch style */}
+                        <div className="modal-header border-0 pb-0">
+                            <h5 className="modal-title fw-bold text-dark">Request for Quote</h5>
                         </div>
 
                         {/* Body */}
-                        <div className={`modal-body ${styles.modalBody}`}>
+                        <div className="modal-body px-4 pt-3 pb-2">
                             {sent ? (
                                 <div className="text-center py-5">
                                     <div className="mb-3" style={{ fontSize: '3rem' }}>✅</div>
@@ -266,7 +248,7 @@ const RequestQuoteModal: React.FC<RequestQuoteModalProps> = ({ show, onClose, se
                                     </p>
                                 </div>
                             ) : (
-                                <form onSubmit={e => e.preventDefault()}>
+                                <div className="container-fluid p-0">
                                     {/* Part & Quantity - Same as VendorSearch.tsx */}
                                     <div className="row g-3 mb-3">
                                         <div className="col-md-6">
@@ -340,7 +322,7 @@ const RequestQuoteModal: React.FC<RequestQuoteModalProps> = ({ show, onClose, se
                                         <FiShield className="me-2 text-primary" />Certified By
                                     </h6>
 
-                                    <div className="row g-2 mb-3">
+                                    <div className="row g-2">
                                         {CERTIFICATION_OPTIONS.map(cert => (
                                             <div className="col-md-6" key={cert}>
                                                 <label
@@ -382,37 +364,27 @@ const RequestQuoteModal: React.FC<RequestQuoteModalProps> = ({ show, onClose, se
                                             </div>
                                         )}
                                     </div>
-                                </form>
+                                </div>
                             )}
                         </div>
 
-                        {/* Footer */}
+                        {/* Footer - Matching VendorSearch style, only Send button */}
                         {!sent && (
-                            <div className={`modal-footer ${styles.modalFooter}`}>
-                                {/* {selectedVendors.length > 0 && (
-                                    <span className={styles.vendorInfo}>
+                            <div className="modal-footer border-top px-4 py-3">
+                                {selectedVendors.length > 0 && (
+                                    <span className="text-secondary small me-auto">
                                         <strong>{selectedVendors.length}</strong> vendor{selectedVendors.length !== 1 ? 's' : ''} selected
                                     </span>
-                                )} */}
+                                )}
 
                                 <button
                                     type="button"
-                                    className={`${styles.footerBtn} ${styles.previewBtn}`}
-                                    onClick={handlePreview}
-                                    disabled={!isFormValid}
-                                    title="Preview PDF"
-                                >
-                                    <FiEye /> Preview
-                                </button>
-
-                                <button
-                                    type="button"
-                                    className={`${styles.footerBtn} ${styles.sendBtn}`}
+                                    className="btn btn-primary d-flex align-items-center shadow-sm"
                                     onClick={handleSend}
                                     disabled={!isFormValid || selectedVendors.length === 0}
                                     title={selectedVendors.length === 0 ? 'Select vendors first' : 'Send to selected vendors'}
                                 >
-                                    <FiSend /> Send to Selected Vendors
+                                    <FiSend className="me-2" /> Send to Selected Vendors
                                 </button>
                             </div>
                         )}

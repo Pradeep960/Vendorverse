@@ -2,9 +2,10 @@ import React, { useState, useRef } from 'react';
 import {
     FiSearch, FiMapPin, FiBox, FiHash, 
     FiShield, FiDollarSign, FiRotateCcw, FiCheckCircle,
-    FiXCircle, FiEye, FiAward, FiX, FiAlertCircle
+    FiXCircle, FiEye, FiAward, FiX, FiAlertCircle, FiFileText
 } from 'react-icons/fi';
 import Loader from '../../components/Loader/Loader';
+import RequestQuoteModal from '../../components/RequestQuoteModal/RequestQuoteModal';
 import type { Vendor, VendorResponse } from '../../models/Vendor';
 import { sendVendors } from '../../services/apiService';
 import { mockVendors } from '../../mock/vendors';
@@ -15,7 +16,6 @@ interface SearchForm {
     location: string;
     budget: number;
     quantity: number ;
-    // year: number;
 }
 
 const CERTIFICATION_OPTIONS = [
@@ -35,7 +35,6 @@ const initialForm: SearchForm = {
     location: '',
     budget: 0,
     quantity: 0,
-    // year: 0
 };
 
 interface FormErrors {
@@ -56,7 +55,51 @@ const VendorSearch: React.FC = () => {
     const [showModal, setShowModal] = useState(false);
     const [showOtherInput, setShowOtherInput] = useState(false);
     const [otherCertInput, setOtherCertInput] = useState('');
+    const [selectedVendors, setSelectedVendors] = useState<VendorResponse[]>([]);
+    const [showQuoteModal, setShowQuoteModal] = useState(false);
     const modalRef = useRef<HTMLDivElement>(null);
+
+    // --- Toggle vendor selection ---
+    const toggleSelectVendor = (vendor: VendorResponse) => {
+        setSelectedVendors(prev => {
+            const exists = prev.some(v => v.rank === vendor.rank);
+            if (exists) {
+                return prev.filter(v => v.rank !== vendor.rank);
+            } else {
+                return [...prev, vendor];
+            }
+        });
+    };
+
+    // --- Check if vendor is selected ---
+    const isVendorSelected = (vendor: VendorResponse) => {
+        return selectedVendors.some(v => v.rank === vendor.rank);
+    };
+
+    // --- Select all vendors ---
+    const toggleSelectAll = () => {
+        if (selectedVendors.length === mockVendors.length) {
+            setSelectedVendors([]);
+        } else {
+            setSelectedVendors([...mockVendors]);
+        }
+    };
+
+    // --- Get selected vendors for quote modal ---
+    const getSelectedVendors = (): Vendor[] => {
+        return selectedVendors.map(v => ({
+            id: String(v.rank || 0),
+            name: v.vendor_name || '',
+            description: v.description || '',
+            certifications: v.certifications_found || [],
+            location: v.location_exact || '',
+            category: v.market_segment || '',
+            contact_email: v.contact_email || '',
+            contact_phone: v.contact_phone || '',
+            email: v.contact_email || '',
+            phone: v.contact_phone || ''
+        } as Vendor));
+    };
 
     // --- Validation ---
     const validateForm = (): FormErrors => {
@@ -136,6 +179,7 @@ const VendorSearch: React.FC = () => {
         setShowModal(false);
         setLoading(true);
         setSearched(false);
+        setSelectedVendors([]);
         try {
             const result = await searchVendorsApi(form);
             let filtered = [...result];
@@ -170,19 +214,22 @@ const VendorSearch: React.FC = () => {
 
     // --- Open vendor website in new tab ---
     const handleViewDetails = (vendor: VendorResponse) => {
-        const url = (vendor as any).url || (vendor as any).website || (vendor as any).vendor_url || '';
+        const url = vendor.url || '';
         if (url) {
             window.open(url, '_blank', 'noopener,noreferrer');
         }
     };
 
     // --- Helpers to read certifications from different mock shapes ---
-    const getVendorCerts = (v: VendorResponse) => ((v as any).certifications ?? (v as any).certifications_found ?? []) as string[];
+    const getVendorCerts = (v: VendorResponse) => (v.certifications_found ?? []) as string[];
     const vendorHasIso = (v: VendorResponse) => getVendorCerts(v).some(c => c.toLowerCase().includes('iso'));
     const searchVendorsApi = (formdata: SearchForm) => {
         return sendVendors(formdata);
     };
     
+    const allSelected = mockVendors.length > 0 && selectedVendors.length === mockVendors.length;
+    const someSelected = selectedVendors.length > 0 && selectedVendors.length < mockVendors.length;
+
     return (
         <div>
             {/* Header */}
@@ -191,12 +238,22 @@ const VendorSearch: React.FC = () => {
                     <h3 className="fw-bold text-dark mb-1">Discover Vendors</h3>
                     <p className="text-secondary mb-0">Search and find the best vendors for your needs.</p>
                 </div>
-                <button
-                    className="btn btn-primary d-flex align-items-center shadow-sm"
-                    onClick={() => setShowModal(true)}
-                >
-                    <FiSearch className="me-2" /> Search Vendors
-                </button>
+                <div className="d-flex gap-2">
+                    {searched && selectedVendors.length > 0 && (
+                        <button
+                            className="btn btn-outline-primary d-flex align-items-center"
+                            onClick={() => setShowQuoteModal(true)}
+                        >
+                            <FiFileText className="me-2" /> Request Quote ({selectedVendors.length})
+                        </button>
+                    )}
+                    <button
+                        className="btn btn-primary d-flex align-items-center shadow-sm"
+                        onClick={() => setShowModal(true)}
+                    >
+                        <FiSearch className="me-2" /> Search Vendors
+                    </button>
+                </div>
             </div>
 
             {/* Modal */}
@@ -371,86 +428,123 @@ const VendorSearch: React.FC = () => {
             {/* Results */}
             {searched && !loading && (
                 <div>
+                    {/* Selection info bar */}
+                    {mockVendors.length > 0 && (
+                        <div className="d-flex justify-content-between align-items-center mb-3">
+                            <span className="text-secondary small">
+                                {selectedVendors.length} of {mockVendors.length} vendors selected
+                            </span>
+                            <button
+                                className="btn btn-sm btn-link text-decoration-none"
+                                onClick={toggleSelectAll}
+                            >
+                                {allSelected ? 'Deselect All' : 'Select All'}
+                            </button>
+                        </div>
+                    )}
+                    
                     <div className="row g-4">
-                        {vendors.map(vendor => (
-                            <div className="col-12 col-md-6 col-lg-4" key={vendor.rank}>
-                                <div
-                                    className="card border-0 h-100"
-                                    style={{
-                                        boxShadow: '0 2px 12px rgba(0,0,0,0.08)',
-                                        transition: 'transform 0.2s ease, box-shadow 0.2s ease',
-                                        cursor: 'pointer',
-                                    }}
-                                    onMouseEnter={e => {
-                                        (e.currentTarget as HTMLElement).style.transform = 'translateY(-4px)';
-                                        (e.currentTarget as HTMLElement).style.boxShadow = '0 8px 24px rgba(0,0,0,0.14)';
-                                    }}
-                                    onMouseLeave={e => {
-                                        (e.currentTarget as HTMLElement).style.transform = 'translateY(0)';
-                                        (e.currentTarget as HTMLElement).style.boxShadow = '0 2px 12px rgba(0,0,0,0.08)';
-                                    }}
-                                >
-                                    <div className="card-body p-4">
-                                        {/* Vendor Name & ISO Badge */}
-                                        <div className="d-flex justify-content-between align-items-start mb-3">
-                                            <h5 className="fw-bold text-dark mb-0">{(vendor as any).name || (vendor as any).vendor_name}</h5>
-                                            {vendorHasIso(vendor) ? (
-                                                <span className="badge bg-success bg-opacity-10 text-success d-flex align-items-center gap-1 px-2 py-1">
-                                                    <FiCheckCircle size={12} /> ISO Certified
-                                                </span>
-                                            ) : (
-                                                <span className="badge bg-secondary bg-opacity-10 text-secondary d-flex align-items-center gap-1 px-2 py-1">
-                                                    <FiXCircle size={12} /> Not Certified
-                                                </span>
-                                            )}
+                        {mockVendors.map(vendor => {
+                            const isSelected = isVendorSelected(vendor);
+                            return (
+                                <div className="col-12 col-md-6 col-lg-4" key={vendor.rank}>
+                                    <div
+                                        className={`card border-0 h-100 ${isSelected ? 'border-primary' : ''}`}
+                                        style={{
+                                            boxShadow: isSelected 
+                                                ? '0 4px 16px rgba(67, 97, 238, 0.25)' 
+                                                : '0 2px 12px rgba(0,0,0,0.08)',
+                                            transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+                                            cursor: 'pointer',
+                                            position: 'relative',
+                                        }}
+                                        onClick={() => toggleSelectVendor(vendor)}
+                                        onMouseEnter={e => {
+                                            if (!isSelected) {
+                                                (e.currentTarget as HTMLElement).style.transform = 'translateY(-4px)';
+                                                (e.currentTarget as HTMLElement).style.boxShadow = '0 8px 24px rgba(0,0,0,0.14)';
+                                            }
+                                        }}
+                                        onMouseLeave={e => {
+                                            if (!isSelected) {
+                                                (e.currentTarget as HTMLElement).style.transform = 'translateY(0)';
+                                                (e.currentTarget as HTMLElement).style.boxShadow = '0 2px 12px rgba(0,0,0,0.08)';
+                                            }
+                                        }}
+                                    >
+                                        {/* Checkbox */}
+                                        <div 
+                                            className="position-absolute"
+                                            style={{ top: '12px', left: '12px', zIndex: 5 }}
+                                        >
+                                            <input
+                                                type="checkbox"
+                                                checked={isSelected}
+                                                onChange={() => toggleSelectVendor(vendor)}
+                                                className="form-check-input"
+                                                style={{ 
+                                                    width: '20px', 
+                                                    height: '20px', 
+                                                    cursor: 'pointer',
+                                                    accentColor: '#4361ee'
+                                                }}
+                                                onClick={(e) => e.stopPropagation()}
+                                            />
                                         </div>
 
-                                        {/* Details */}
-                                        <div className="d-flex flex-column gap-2 small text-secondary mb-3">
-                                            <div className="d-flex align-items-center">
-                                                <FiMapPin className="me-2 text-primary" style={{ flexShrink: 0 }} />
-                                                <span>{vendor.location_exact}</span>
+                                        <div className="card-body p-4 pt-5">
+                                            {/* Vendor Name & ISO Badge */}
+                                            <div className="d-flex justify-content-between align-items-start mb-3">
+                                                <h5 className="fw-bold text-dark mb-0">{vendor.vendor_name}</h5>
+                                                {vendorHasIso(vendor) ? (
+                                                    <span className="badge bg-success bg-opacity-10 text-success d-flex align-items-center gap-1 px-2 py-1">
+                                                        <FiCheckCircle size={12} /> ISO Certified
+                                                    </span>
+                                                ) : (
+                                                    <span className="badge bg-secondary bg-opacity-10 text-secondary d-flex align-items-center gap-1 px-2 py-1">
+                                                        <FiXCircle size={12} /> Not Certified
+                                                    </span>
+                                                )}
                                             </div>
-                                            {/* <div className="d-flex align-items-center">
-                                                <FiDollarSign className="me-2 text-primary" style={{ flexShrink: 0 }} />
-                                                <span>${(vendor. ?? 0).toLocaleString()} – ${(vendor.pricingMax ?? 0).toLocaleString()}</span>
-                                            </div> */}
-                                            {/* <div className="d-flex align-items-center">
-                                                <FiPackage className="me-2 text-primary" style={{ flexShrink: 0 }} />
-                                                <span>Qty Available: {(vendor.availableQuantity ?? 0).toLocaleString()}</span>
-                                            </div> */}
-                                            {/* <div className="d-flex align-items-center">
-                                                <FiCalendar className="me-2 text-primary" style={{ flexShrink: 0 }} />
-                                                <span>Est. {vendor.yearEstablished}</span>
-                                            </div> */}
-                                            <div className="d-flex align-items-center">
-                                                <FiAward className="me-2 text-primary" style={{ flexShrink: 0 }} />
-                                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                                                    {getVendorCerts(vendor).length > 0 ? (
-                                                        getVendorCerts(vendor).map((c, i) => (
-                                                            <span key={i} className="badge bg-light text-dark border">{c}</span>
-                                                        ))
-                                                    ) : (
-                                                        <span className="text-secondary">No certifications listed</span>
-                                                    )}
+
+                                            {/* Details */}
+                                            <div className="d-flex flex-column gap-2 small text-secondary mb-3">
+                                                <div className="d-flex align-items-center">
+                                                    <FiMapPin className="me-2 text-primary" style={{ flexShrink: 0 }} />
+                                                    <span>{vendor.location_exact}</span>
+                                                </div>
+                                                <div className="d-flex align-items-center">
+                                                    <FiAward className="me-2 text-primary" style={{ flexShrink: 0 }} />
+                                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                                                        {getVendorCerts(vendor).length > 0 ? (
+                                                            getVendorCerts(vendor).map((c, i) => (
+                                                                <span key={i} className="badge bg-light text-dark border">{c}</span>
+                                                            ))
+                                                        ) : (
+                                                            <span className="text-secondary">No certifications listed</span>
+                                                        )}
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
-                                    </div>
 
-                                    {/* Footer */}
-                                    <div className="card-footer bg-transparent border-top p-3 d-flex justify-content-end">
-                                        <button
-                                            className="btn btn-outline-primary btn-sm d-flex align-items-center rounded-pill px-3"
-                                            onClick={() => handleViewDetails(vendor)}
-                                            aria-label={`View details for ${vendor.vendor_name || vendor.vendor_name || 'vendor'}`}
-                                        >
-                                            <FiEye className="me-1" /> View Details
-                                        </button>
+                                        {/* Footer */}
+                                        <div className="card-footer bg-transparent border-top p-3 d-flex justify-content-end">
+                                            <button
+                                                className="btn btn-outline-primary btn-sm d-flex align-items-center rounded-pill px-3"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    handleViewDetails(vendor);
+                                                }}
+                                                aria-label={`View details for ${vendor.vendor_name}`}
+                                            >
+                                                <FiEye className="me-1" /> View Details
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                        ))}
+                            );
+                        })}
 
                         {vendors.length === 0 && (
                             <div className="col-12 text-center py-5 text-secondary">
@@ -468,6 +562,13 @@ const VendorSearch: React.FC = () => {
                     <p className="text-secondary">Click <strong>"Search Vendors"</strong> to find vendors matching your requirements.</p>
                 </div>
             )}
+
+            {/* Request Quote Modal */}
+            <RequestQuoteModal
+                show={showQuoteModal}
+                onClose={() => setShowQuoteModal(false)}
+                selectedVendors={getSelectedVendors()}
+            />
         </div>
     );
 };
