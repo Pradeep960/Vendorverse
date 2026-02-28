@@ -21,13 +21,19 @@ const COMPANY_EMAIL = 'procurement@vendorverse.com';
 const COMPANY_PHONE = '+1 (212) 555-0199';
 
 export function generateRFQPdf(formData: RFQFormData, vendorNames?: string[]): void {
+    const pdfBlob = generateRFQPdfBlob(formData, vendorNames);
+    const url = URL.createObjectURL(pdfBlob);
+    window.open(url, '_blank');
+}
+
+export function generateRFQPdfBlob(formData: RFQFormData, vendorNames?: string[]): Blob {
     const doc = new jsPDF();
     const pageWidth = doc.internal.pageSize.getWidth();
     const margin = 20;
     const contentWidth = pageWidth - margin * 2;
     let y = 20;
 
-    // ─── Header Band ───
+    // Header Band
     doc.setFillColor(67, 97, 238);
     doc.rect(0, 0, pageWidth, 42, 'F');
 
@@ -43,7 +49,7 @@ export function generateRFQPdf(formData: RFQFormData, vendorNames?: string[]): v
 
     y = 55;
 
-    // ─── Meta info row ───
+    // Meta info row
     doc.setTextColor(100, 100, 100);
     doc.setFontSize(9);
     const today = new Date().toLocaleDateString('en-US', {
@@ -53,20 +59,19 @@ export function generateRFQPdf(formData: RFQFormData, vendorNames?: string[]): v
     doc.text(`RFQ #: RFQ-${Date.now().toString(36).toUpperCase()}`, pageWidth - margin, y, { align: 'right' });
     y += 12;
 
-    // ─── Separator ───
+    // Separator
     doc.setDrawColor(67, 97, 238);
     doc.setLineWidth(0.5);
     doc.line(margin, y, pageWidth - margin, y);
     y += 10;
 
-    // ─── Items Table ───
+    // Items Table
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(11);
     doc.setTextColor(43, 54, 116);
     doc.text('Requested Items', margin, y + 2);
     y += 10;
 
-    // Table header
     const col1X = margin;
     const col2X = margin + 15;
     const col3X = pageWidth - margin - 35;
@@ -82,7 +87,6 @@ export function generateRFQPdf(formData: RFQFormData, vendorNames?: string[]): v
     doc.text('Quantity', col3X + 4, y + 4);
     y += tableRowHeight + 2;
 
-    // Table rows
     formData.items.forEach((item, idx) => {
         if (idx % 2 === 0) {
             doc.setFillColor(245, 247, 254);
@@ -106,7 +110,7 @@ export function generateRFQPdf(formData: RFQFormData, vendorNames?: string[]): v
 
     y += 8;
 
-    // ─── Details Table ───
+    // Details Table
     doc.setDrawColor(67, 97, 238);
     doc.setLineWidth(0.3);
     doc.line(margin, y, pageWidth - margin, y);
@@ -147,7 +151,7 @@ export function generateRFQPdf(formData: RFQFormData, vendorNames?: string[]): v
 
     y += 8;
 
-    // ─── Targeted Vendors ───
+    // Targeted Vendors
     if (vendorNames && vendorNames.length > 0) {
         doc.setDrawColor(67, 97, 238);
         doc.setLineWidth(0.5);
@@ -169,7 +173,7 @@ export function generateRFQPdf(formData: RFQFormData, vendorNames?: string[]): v
         });
     }
 
-    // ─── Footer ───
+    // Footer
     const footerY = doc.internal.pageSize.getHeight() - 20;
     doc.setDrawColor(200, 200, 200);
     doc.setLineWidth(0.3);
@@ -182,8 +186,5 @@ export function generateRFQPdf(formData: RFQFormData, vendorNames?: string[]): v
     doc.text(`${COMPANY_EMAIL}  |  ${COMPANY_PHONE}`, margin, footerY + 5);
     doc.text('Confidential — For intended recipients only', pageWidth - margin, footerY, { align: 'right' });
 
-    // ─── Open in new tab ───
-    const pdfBlob = doc.output('blob');
-    const url = URL.createObjectURL(pdfBlob);
-    window.open(url, '_blank');
+    return doc.output('blob');
 }
