@@ -5,7 +5,6 @@ import {
     FiXCircle, FiEye, FiPackage, FiAward, FiX, FiAlertCircle
 } from 'react-icons/fi';
 import Loader from '../../components/Loader/Loader';
-import { searchVendors } from '../../services/apiService';
 import type { Vendor } from '../../models/Vendor';
 import { mockVendors } from '../../mock/vendors';
 
@@ -205,6 +204,7 @@ const VendorSearch: React.FC = () => {
             body: JSON.stringify(formdata),
         });
     }
+    
     return (
         <div>
             {/* Header */}
