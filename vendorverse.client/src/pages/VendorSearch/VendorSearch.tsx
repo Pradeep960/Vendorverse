@@ -5,7 +5,7 @@ import {
     FiXCircle, FiEye, FiAward, FiX, FiAlertCircle
 } from 'react-icons/fi';
 import Loader from '../../components/Loader/Loader';
-import type { Vendor } from '../../models/Vendor';
+import type { Vendor, VendorResponse } from '../../models/Vendor';
 import { sendVendors } from '../../services/apiService';
 import { mockVendors } from '../../mock/vendors';
 
@@ -50,7 +50,7 @@ interface FormErrors {
 const VendorSearch: React.FC = () => {
     const [form, setForm] = useState<SearchForm>(initialForm);
     const [errors, setErrors] = useState<FormErrors>({});
-    const [vendors, setVendors] = useState<Vendor[]>([]);
+    const [vendors, setVendors] = useState<VendorResponse[]>([]);
     const [loading, setLoading] = useState(false);
     const [searched, setSearched] = useState(false);
     const [showModal, setShowModal] = useState(false);
@@ -169,7 +169,7 @@ const VendorSearch: React.FC = () => {
         cert === 'Other' ? showOtherInput : form.certifications.includes(cert);
 
     // --- Open vendor website in new tab ---
-    const handleViewDetails = (vendor: Vendor) => {
+    const handleViewDetails = (vendor: VendorResponse) => {
         const url = (vendor as any).url || (vendor as any).website || (vendor as any).vendor_url || '';
         if (url) {
             window.open(url, '_blank', 'noopener,noreferrer');
@@ -177,8 +177,8 @@ const VendorSearch: React.FC = () => {
     };
 
     // --- Helpers to read certifications from different mock shapes ---
-    const getVendorCerts = (v: Vendor) => ((v as any).certifications ?? (v as any).certifications_found ?? []) as string[];
-    const vendorHasIso = (v: Vendor) => getVendorCerts(v).some(c => c.toLowerCase().includes('iso'));
+    const getVendorCerts = (v: VendorResponse) => ((v as any).certifications ?? (v as any).certifications_found ?? []) as string[];
+    const vendorHasIso = (v: VendorResponse) => getVendorCerts(v).some(c => c.toLowerCase().includes('iso'));
     const searchVendorsApi = (formdata: SearchForm) => {
         return sendVendors(formdata);
     };
@@ -443,7 +443,7 @@ const VendorSearch: React.FC = () => {
                                         <button
                                             className="btn btn-outline-primary btn-sm d-flex align-items-center rounded-pill px-3"
                                             onClick={() => handleViewDetails(vendor)}
-                                            aria-label={`View details for ${vendor.name || vendor.vendor_name || 'vendor'}`}
+                                            aria-label={`View details for ${vendor.vendor_name || vendor.vendor_name || 'vendor'}`}
                                         >
                                             <FiEye className="me-1" /> View Details
                                         </button>

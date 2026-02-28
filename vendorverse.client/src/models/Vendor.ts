@@ -1,21 +1,24 @@
 export interface Vendor {
-    // id: string;
-    // name: string;
-    // description: string;
-    // certifications: string[];
-    // location: string;
-    // category: string;
-    // contactEmail: string;
-    // phone: string;
-    // matchScore?: number;
-    // pricingMin?: number;
-    // pricingMax?: number;
-    // availableQuantity?: number;
-    // yearEstablished?: number;
-    // isIsoCertified?: boolean;
+    id: string;
+    name: string;
+    description: string;
+    certifications: string[];
+    location: string;
+    category: string;
+    email: string;
+    phone: string;
+    matchScore?: number;
+    pricingMin?: number;
+    pricingMax?: number;
+    availableQuantity?: number;
+    yearEstablished?: number;
+    isIsoCertified?: boolean;
+}
 
 
-    rank: number;
+export interface VendorResponse {
+    rank?: number;
+    item?: string;
     url?: string;
     description?: string;
     certifications_found: string[];

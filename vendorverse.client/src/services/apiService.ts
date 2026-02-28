@@ -1,17 +1,16 @@
 import axios from 'axios';
 import { storageService } from './storageService';
-import type { Vendor } from '../models/Vendor';
+import type { Vendor, VendorResponse } from '../models/Vendor';
 import type { RFQ } from '../models/RFQ';
 import type { Quote } from '../models/Quote';
 import type { VendorScore } from '../models/Score';
 
 // Mock data
 import { mockVendors } from '../mock/vendors';
-import { mockRFQs } from '../mock/rfqs';
 import { mockQuotes } from '../mock/quotes';
 import { mockScores } from '../mock/scores';
 
-const API_URL = "https://following-identifies-supreme-turbo.trycloudflare.com/";
+const API_URL = "https://parameter-june-ranking-mutual.trycloudflare.com/";
 const apiClient = axios.create({
     baseURL: API_URL,
     headers: {
@@ -26,7 +25,7 @@ export const sendVendors = async (payload: any) => {
     try {
         // explicitly post to '/vendor_search' just in case the baseURL ever changes
         const response = await apiClient.post("vendor-search", payload);
-        return response.data;
+        return response.data.vendors as VendorResponse[];
     } catch (error: any) {
         throw error;
     }

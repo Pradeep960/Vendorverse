@@ -193,7 +193,7 @@ const Vendors: React.FC = () => {
             </Card>
 
             {/* Floating Action Bar */}
-            {selectedIds.size > 0 && (
+            {/* {selectedIds.size > 0 && (
                 <div className={styles.actionBarWrapper}>
                     <div className={styles.actionBar}>
                         <span className={styles.selectedCount}>
@@ -224,7 +224,7 @@ const Vendors: React.FC = () => {
                         </button>
                     </div>
                 </div>
-            )}
+            )} */}
 
             {/* Request Quote Modal */}
             <RequestQuoteModal

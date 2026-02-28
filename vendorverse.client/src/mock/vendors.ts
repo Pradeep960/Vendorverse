@@ -1,6 +1,6 @@
-import type { Vendor } from '../models/Vendor';
+import type { Vendor, VendorResponse } from '../models/Vendor';
 
-export const mockVendors: Vendor[] = [
+export const mockVendors: VendorResponse[] = [
     {
         rank: 1,
         url: "https://in.climaveneta.com/en/about",
