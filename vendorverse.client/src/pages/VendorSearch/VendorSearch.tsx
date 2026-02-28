@@ -1,20 +1,21 @@
 import React, { useState, useRef } from 'react';
 import {
-    FiSearch, FiMapPin, FiBox, FiHash, FiCalendar,
+    FiSearch, FiMapPin, FiBox, FiHash, 
     FiShield, FiDollarSign, FiRotateCcw, FiCheckCircle,
-    FiXCircle, FiEye, FiPackage, FiAward, FiX, FiAlertCircle
+    FiXCircle, FiEye, FiAward, FiX, FiAlertCircle
 } from 'react-icons/fi';
 import Loader from '../../components/Loader/Loader';
-import type { Vendor } from '../../models/Vendor';
+import type { Vendor, VendorResponse } from '../../models/Vendor';
+import { sendVendors } from '../../services/apiService';
 import { mockVendors } from '../../mock/vendors';
 
 interface SearchForm {
     part: string;
     certifications: string[];
     location: string;
-    budget: string;
-    quantity: string;
-    year: number;
+    budget: number;
+    quantity: number ;
+    // year: number;
 }
 
 const CERTIFICATION_OPTIONS = [
@@ -32,9 +33,9 @@ const initialForm: SearchForm = {
     part: '',
     certifications: [],
     location: '',
-    budget: '',
-    quantity: '',
-    year: 0
+    budget: 0,
+    quantity: 0,
+    // year: 0
 };
 
 interface FormErrors {
@@ -49,7 +50,7 @@ interface FormErrors {
 const VendorSearch: React.FC = () => {
     const [form, setForm] = useState<SearchForm>(initialForm);
     const [errors, setErrors] = useState<FormErrors>({});
-    const [vendors, setVendors] = useState<Vendor[]>([]);
+    const [vendors, setVendors] = useState<VendorResponse[]>([]);
     const [loading, setLoading] = useState(false);
     const [searched, setSearched] = useState(false);
     const [showModal, setShowModal] = useState(false);
@@ -61,7 +62,7 @@ const VendorSearch: React.FC = () => {
     const validateForm = (): FormErrors => {
         const newErrors: FormErrors = {};
         if (!form.part.trim()) newErrors.part = 'Part is required';
-        if (!form.quantity.trim()) newErrors.quantity = 'Quantity is required';
+        if (!form.quantity) newErrors.quantity = 'Quantity is required';
         else if (Number(form.quantity) <= 0) newErrors.quantity = 'Must be greater than 0';
         if (!form.location.trim()) newErrors.location = 'Location is required';
         if (form.budget && Number(form.budget) < 0) newErrors.pricingRange = 'Budget cannot be negative';
@@ -71,7 +72,8 @@ const VendorSearch: React.FC = () => {
     // --- Form field change ---
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
-        setForm(prev => ({ ...prev, [name]: value }));
+        const parsedValue = (name === 'budget' || name === 'quantity') ? Number(value) : value;
+        setForm(prev => ({ ...prev, [name]: parsedValue }));
         setErrors(prev => {
             const updated = { ...prev };
             delete updated[name as keyof FormErrors];
@@ -80,11 +82,9 @@ const VendorSearch: React.FC = () => {
         });
     };
 
-    // --- Certification checkbox toggle ---
     const handleCertificationChange = (cert: string) => {
         if (cert === 'Other') {
             if (showOtherInput) {
-                // Unchecking Other: remove custom text from certifications
                 const customVal = otherCertInput.trim();
                 if (customVal) {
                     setForm(prev => ({
@@ -137,40 +137,13 @@ const VendorSearch: React.FC = () => {
         setLoading(true);
         setSearched(false);
         try {
-            var result = await searchVendors(form);
-            console.log(result);
-            let filtered = [...mockVendors];
-
-            // Filter by certifications
-            if (form.certifications.length > 0) {
-                filtered = filtered.filter(v =>
-                    form.certifications.some(cert =>
-                        v.certifications.some(vc => vc.toLowerCase().includes(cert.toLowerCase()))
-                    )
-                );
-            }
-
-            // Filter by budget
-            if (form.budget) {
-                filtered = filtered.filter(v => (v.pricingMax ?? Infinity) <= Number(form.budget));
-            }
-
-            // Filter by year
-            if (form.year) {
-                filtered = filtered.filter(v => (v.yearEstablished ?? 0) <= Number(form.year));
-            }
-
-            // Filter by quantity
-            const qty = Number(form.quantity) || 0;
-            if (qty > 0) {
-                filtered = filtered.filter(v => (v.availableQuantity ?? 0) >= qty);
-            }
-
-            setVendors(filtered.sort((a, b) => (b.matchScore || 0) - (a.matchScore || 0)));
+            const result = await searchVendorsApi(form);
+            let filtered = [...result];
+            setVendors(filtered);
             setSearched(true);
             handleReset();
         } catch (error) {
-            console.error('Search failed', error);
+            setSearched(true);
         } finally {
             setLoading(false);
         }
@@ -195,15 +168,20 @@ const VendorSearch: React.FC = () => {
     const isCertChecked = (cert: string) =>
         cert === 'Other' ? showOtherInput : form.certifications.includes(cert);
 
-    const searchVendors = (formdata : SearchForm)=>{
-        return fetch('https://wiley-method-sperm-rest.trycloudflare.com/docs',{
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(formdata),
-        });
-    }
+    // --- Open vendor website in new tab ---
+    const handleViewDetails = (vendor: VendorResponse) => {
+        const url = (vendor as any).url || (vendor as any).website || (vendor as any).vendor_url || '';
+        if (url) {
+            window.open(url, '_blank', 'noopener,noreferrer');
+        }
+    };
+
+    // --- Helpers to read certifications from different mock shapes ---
+    const getVendorCerts = (v: VendorResponse) => ((v as any).certifications ?? (v as any).certifications_found ?? []) as string[];
+    const vendorHasIso = (v: VendorResponse) => getVendorCerts(v).some(c => c.toLowerCase().includes('iso'));
+    const searchVendorsApi = (formdata: SearchForm) => {
+        return sendVendors(formdata);
+    };
     
     return (
         <div>
@@ -330,31 +308,22 @@ const VendorSearch: React.FC = () => {
                                         <div className="row g-2">
                                             {CERTIFICATION_OPTIONS.map(cert => (
                                                 <div className="col-md-6" key={cert}>
-                                                    <div
+                                                    <label
                                                         className={`bg-light rounded-3 p-2 px-3 d-flex align-items-center ${
                                                             isCertChecked(cert) ? 'border border-primary' : 'border border-transparent'
                                                         }`}
                                                         style={{ cursor: 'pointer', transition: 'border-color 0.2s ease' }}
-                                                        onClick={() => handleCertificationChange(cert)}
                                                     >
-                                                        <div className="form-check mb-0 d-flex align-items-center">
-                                                            <input
-                                                                className="form-check-input me-2"
-                                                                type="checkbox"
-                                                                id={`cert-${cert.replace(/\s+/g, '-')}`}
-                                                                checked={isCertChecked(cert)}
-                                                                onChange={() => handleCertificationChange(cert)}
-                                                                style={{ cursor: 'pointer' }}
-                                                            />
-                                                            <label
-                                                                className="form-check-label text-dark small"
-                                                                htmlFor={`cert-${cert.replace(/\s+/g, '-')}`}
-                                                                style={{ cursor: 'pointer' }}
-                                                            >
-                                                                {cert}
-                                                            </label>
-                                                        </div>
-                                                    </div>
+                                                        <input
+                                                            className="form-check-input me-2"
+                                                            type="checkbox"
+                                                            id={`cert-${cert.replace(/\s+/g, '-')}`}
+                                                            checked={isCertChecked(cert)}
+                                                            onChange={() => handleCertificationChange(cert)}
+                                                            style={{ cursor: 'pointer' }}
+                                                        />
+                                                        <span className="text-dark small">{cert}</span>
+                                                    </label>
                                                 </div>
                                             ))}
 
@@ -404,7 +373,7 @@ const VendorSearch: React.FC = () => {
                 <div>
                     <div className="row g-4">
                         {vendors.map(vendor => (
-                            <div className="col-12 col-md-6 col-lg-4" key={vendor.id}>
+                            <div className="col-12 col-md-6 col-lg-4" key={vendor.rank}>
                                 <div
                                     className="card border-0 h-100"
                                     style={{
@@ -424,8 +393,8 @@ const VendorSearch: React.FC = () => {
                                     <div className="card-body p-4">
                                         {/* Vendor Name & ISO Badge */}
                                         <div className="d-flex justify-content-between align-items-start mb-3">
-                                            <h5 className="fw-bold text-dark mb-0">{vendor.name}</h5>
-                                            {vendor.isIsoCertified ? (
+                                            <h5 className="fw-bold text-dark mb-0">{(vendor as any).name || (vendor as any).vendor_name}</h5>
+                                            {vendorHasIso(vendor) ? (
                                                 <span className="badge bg-success bg-opacity-10 text-success d-flex align-items-center gap-1 px-2 py-1">
                                                     <FiCheckCircle size={12} /> ISO Certified
                                                 </span>
@@ -440,30 +409,42 @@ const VendorSearch: React.FC = () => {
                                         <div className="d-flex flex-column gap-2 small text-secondary mb-3">
                                             <div className="d-flex align-items-center">
                                                 <FiMapPin className="me-2 text-primary" style={{ flexShrink: 0 }} />
-                                                <span>{vendor.location}</span>
+                                                <span>{vendor.location_exact}</span>
                                             </div>
-                                            <div className="d-flex align-items-center">
+                                            {/* <div className="d-flex align-items-center">
                                                 <FiDollarSign className="me-2 text-primary" style={{ flexShrink: 0 }} />
-                                                <span>${(vendor.pricingMin ?? 0).toLocaleString()} – ${(vendor.pricingMax ?? 0).toLocaleString()}</span>
-                                            </div>
-                                            <div className="d-flex align-items-center">
+                                                <span>${(vendor. ?? 0).toLocaleString()} – ${(vendor.pricingMax ?? 0).toLocaleString()}</span>
+                                            </div> */}
+                                            {/* <div className="d-flex align-items-center">
                                                 <FiPackage className="me-2 text-primary" style={{ flexShrink: 0 }} />
                                                 <span>Qty Available: {(vendor.availableQuantity ?? 0).toLocaleString()}</span>
-                                            </div>
-                                            <div className="d-flex align-items-center">
+                                            </div> */}
+                                            {/* <div className="d-flex align-items-center">
                                                 <FiCalendar className="me-2 text-primary" style={{ flexShrink: 0 }} />
                                                 <span>Est. {vendor.yearEstablished}</span>
-                                            </div>
+                                            </div> */}
                                             <div className="d-flex align-items-center">
                                                 <FiAward className="me-2 text-primary" style={{ flexShrink: 0 }} />
-                                                <span>{vendor.certifications.join(', ')}</span>
+                                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                                                    {getVendorCerts(vendor).length > 0 ? (
+                                                        getVendorCerts(vendor).map((c, i) => (
+                                                            <span key={i} className="badge bg-light text-dark border">{c}</span>
+                                                        ))
+                                                    ) : (
+                                                        <span className="text-secondary">No certifications listed</span>
+                                                    )}
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
 
                                     {/* Footer */}
                                     <div className="card-footer bg-transparent border-top p-3 d-flex justify-content-end">
-                                        <button className="btn btn-outline-primary btn-sm d-flex align-items-center rounded-pill px-3">
+                                        <button
+                                            className="btn btn-outline-primary btn-sm d-flex align-items-center rounded-pill px-3"
+                                            onClick={() => handleViewDetails(vendor)}
+                                            aria-label={`View details for ${vendor.vendor_name || vendor.vendor_name || 'vendor'}`}
+                                        >
                                             <FiEye className="me-1" /> View Details
                                         </button>
                                     </div>

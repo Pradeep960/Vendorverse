@@ -60,14 +60,14 @@ const RFQManagement: React.FC = () => {
             <div className="d-flex justify-content-between align-items-center mb-4">
                 <div>
                     <h3 className="fw-bold text-dark mb-1">RFQ Management</h3>
-                    <p className="text-secondary mb-0">Create and monitor your requests for quotation.</p>
+                    {/* <p className="text-secondary mb-0">Create and monitor your requests for quotation.</p> */}
                 </div>
-                <button
+                {/* <button
                     className="btn btn-primary d-flex align-items-center shadow-sm"
                     onClick={() => setShowCreateModal(true)}
                 >
                     <FiPlus className="me-2" /> Create RFQ
-                </button>
+                </button> */}
             </div>
 
             <div className="row g-4">
