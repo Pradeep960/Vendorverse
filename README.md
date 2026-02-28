@@ -10,7 +10,7 @@ cd project
 npm install
 npm run dev
 
-##Entry Point 
+### Entry Point 
 App.tsx
 
 ## Features
