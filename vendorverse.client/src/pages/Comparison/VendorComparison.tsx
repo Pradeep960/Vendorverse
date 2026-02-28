@@ -6,8 +6,7 @@ import { getQuotes, getVendors, getRFQs, updateRFQ } from '../../services/apiSer
 import type { Quote } from '../../models/Quote';
 import type { Vendor } from '../../models/Vendor';
 import type { RFQ } from '../../models/RFQ';
-import { sendSelectionEmail } from '../../services/emailService';
-import { FiCheck, FiAward, FiClock, FiDollarSign } from 'react-icons/fi';
+import { FiCheck, FiAward, FiClock, FiDollarSign, FiStar, FiFileText } from 'react-icons/fi';
 
 const VendorComparison: React.FC = () => {
     const { rfqId } = useParams<{ rfqId: string }>();
@@ -72,6 +71,20 @@ const VendorComparison: React.FC = () => {
             navigate('/rfq');
         }, 2000);
     };
+
+    const handleViewPDF = (file: { name: string, data: string }) => {
+        const base64Content = file.data.split(',')[1];
+        const binary = atob(base64Content);
+        const array = [];
+        for (let i = 0; i < binary.length; i++) {
+            array.push(binary.charCodeAt(i));
+        }
+        const blob = new Blob([new Uint8Array(array)], { type: 'application/pdf' });
+        const url = URL.createObjectURL(blob);
+        window.open(url, '_blank');
+    };
+
+    const getVendorData = (id: string) => vendors.find(v => v.id === id);
 
     return (
         <div>
@@ -142,11 +155,36 @@ const VendorComparison: React.FC = () => {
                                     ))}
                                 </tr>
                                 <tr>
-                                    <td className="text-start fw-bold text-secondary bg-light">Overall Rating</td>
+                                    <td className="text-start fw-bold text-secondary bg-light">Certifications</td>
                                     {quotes.map(quote => {
+                                        const vendor = getVendorData(quote.vendorId);
+                                        return (
+                                            <td key={quote.id} className="text-start p-3">
+                                                {vendor?.certifications && vendor.certifications.length > 0 ? (
+                                                    <div className="d-flex flex-wrap gap-1">
+                                                        {vendor.certifications.map((cert, i) => (
+                                                            <span key={i} className="badge bg-light text-success border small">{cert}</span>
+                                                        ))}
+                                                    </div>
+                                                ) : <span className="text-muted small">None disclosed</span>}
+                                            </td>
+                                        );
+                                    })}
+                                </tr>
+                                <tr>
+                                    <td className="text-start fw-bold text-secondary bg-light">Reviews & Rating</td>
+                                    {quotes.map(quote => {
+                                        const vendor = getVendorData(quote.vendorId);
                                         const score = getVendorScore(quote.vendorId);
+                                        const rating = vendor?.rating || 4.5;
+                                        const reviews = vendor?.reviewsCount || 12;
                                         return (
                                             <td key={quote.id} className={score === maxScore ? 'bg-warning bg-opacity-10' : ''}>
+                                                <div className="d-flex align-items-center justify-content-center mb-1">
+                                                    <FiStar className="text-warning me-1" fill="currentColor" />
+                                                    <strong className="text-dark">{rating}</strong>
+                                                    <span className="text-muted small ms-1">({reviews} reviews)</span>
+                                                </div>
                                                 <span className={`badge ${score === maxScore ? 'bg-warning text-dark' : 'bg-secondary'} fs-6 px-3 py-2 rounded-pill shadow-sm`}>
                                                     {score}% Match
                                                 </span>
@@ -154,6 +192,23 @@ const VendorComparison: React.FC = () => {
                                             </td>
                                         );
                                     })}
+                                </tr>
+                                <tr>
+                                    <td className="text-start fw-bold text-secondary bg-light">Quote Attachment</td>
+                                    {quotes.map(quote => (
+                                        <td key={quote.id} className="p-3">
+                                            {quote.attachedFile ? (
+                                                <button
+                                                    className="btn btn-sm btn-outline-primary d-inline-flex align-items-center gap-2"
+                                                    onClick={() => handleViewPDF(quote.attachedFile!)}
+                                                >
+                                                    <FiFileText size={14} /> View Response PDF
+                                                </button>
+                                            ) : (
+                                                <span className="text-muted small">No PDF attached</span>
+                                            )}
+                                        </td>
+                                    ))}
                                 </tr>
                                 <tr>
                                     <td className="text-start fw-bold text-secondary bg-light border-bottom-0">Decision</td>
