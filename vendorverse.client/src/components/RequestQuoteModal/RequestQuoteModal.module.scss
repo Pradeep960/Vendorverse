@@ -1,0 +1,325 @@
+@import '../../styles/variables';
+
+/* Modal Overlay Enhancement */
+.modalOverlay {
+    backdrop-filter: blur(4px);
+}
+
+/* Modal Content */
+.modalContent {
+    border: none;
+    border-radius: 16px;
+    box-shadow: 0 12px 48px rgba(0, 0, 0, 0.15);
+    overflow: hidden;
+}
+
+/* Modal Header */
+.modalHeader {
+    background: linear-gradient(135deg, $primary-color, $secondary-color);
+    color: #fff;
+    padding: 20px 28px;
+    border-bottom: none;
+
+    .modalTitle {
+        font-weight: 700;
+        font-size: 1.15rem;
+        letter-spacing: 0.3px;
+    }
+
+    .closeBtn {
+        filter: brightness(0) invert(1);
+        opacity: 0.8;
+        transition: opacity 0.2s;
+
+        &:hover {
+            opacity: 1;
+        }
+    }
+}
+
+/* Modal Body */
+.modalBody {
+    padding: 28px;
+    max-height: 65vh;
+    overflow-y: auto;
+}
+
+/* Form Group */
+.formGroup {
+    margin-bottom: 20px;
+
+    label {
+        font-weight: 600;
+        font-size: 0.85rem;
+        color: #2b3674;
+        margin-bottom: 6px;
+        display: block;
+    }
+}
+
+/* Input Styles */
+.formInput {
+    border: 1.5px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 10px 14px;
+    font-size: 0.9rem;
+    transition: all 0.2s ease;
+    width: 100%;
+
+    &:focus {
+        border-color: $primary-color;
+        box-shadow: 0 0 0 3px rgba($primary-color, 0.12);
+        outline: none;
+    }
+
+    &::placeholder {
+        color: #a0aec0;
+    }
+}
+
+/* Pricing Range Row */
+.rangeRow {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+
+    .rangeSeparator {
+        font-weight: 600;
+        color: #94a3b8;
+        font-size: 0.9rem;
+    }
+}
+
+/* Checkbox Group */
+.checkboxGroup {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 6px;
+}
+
+.checkboxLabel {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 10px;
+    font-size: 0.85rem;
+    color: #475569;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    user-select: none;
+
+    &:hover {
+        border-color: $primary-color;
+        background-color: rgba($primary-color, 0.04);
+    }
+
+    input[type='checkbox'] {
+        accent-color: $primary-color;
+        width: 16px;
+        height: 16px;
+    }
+}
+
+.checkboxLabelChecked {
+    border-color: $primary-color;
+    background-color: rgba($primary-color, 0.08);
+    color: $primary-color;
+    font-weight: 600;
+}
+
+/* Select Dropdown */
+.formSelect {
+    border: 1.5px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 10px 14px;
+    font-size: 0.9rem;
+    color: #2b3674;
+    background-color: #fff;
+    width: 100%;
+    transition: all 0.2s ease;
+    appearance: auto;
+
+    &:focus {
+        border-color: $primary-color;
+        box-shadow: 0 0 0 3px rgba($primary-color, 0.12);
+        outline: none;
+    }
+}
+
+/* Modal Footer */
+.modalFooter {
+    padding: 16px 28px;
+    border-top: 1px solid #f1f5f9;
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+}
+
+.footerBtn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 22px;
+    border: none;
+    border-radius: 10px;
+    font-weight: 600;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+
+    &:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 14px rgba(0, 0, 0, 0.1);
+    }
+
+    &:active {
+        transform: translateY(0);
+    }
+
+    &:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        transform: none;
+        box-shadow: none;
+    }
+}
+
+.previewBtn {
+    background: #f1f5f9;
+    color: #334155;
+
+    &:hover:not(:disabled) {
+        background: #e2e8f0;
+    }
+}
+
+.sendBtn {
+    background: $primary-color;
+    color: #fff;
+
+    &:hover:not(:disabled) {
+        background: lighten($primary-color, 6%);
+    }
+}
+
+/* Selected vendors info */
+.vendorInfo {
+    font-size: 0.82rem;
+    color: #64748b;
+    margin-right: auto;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+
+    strong {
+        color: $primary-color;
+    }
+}
+
+/* ─── Multi-Item Styles ─── */
+
+.itemsList {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.itemBox {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 14px;
+    background: #f8fafc;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 12px;
+    transition: all 0.2s ease;
+    animation: fadeIn 0.25s ease;
+
+    &:hover {
+        border-color: rgba($primary-color, 0.3);
+        background: #f1f5f9;
+    }
+}
+
+.itemNumber {
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    background: $primary-color;
+    color: #fff;
+    font-size: 0.78rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.itemFields {
+    display: flex;
+    gap: 10px;
+    flex: 1;
+    min-width: 0;
+}
+
+.qtyInput {
+    max-width: 100px;
+    flex-shrink: 0;
+    text-align: center;
+}
+
+.removeItemBtn {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    border: none;
+    background: rgba(239, 35, 60, 0.08);
+    color: #ef233c;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: all 0.2s ease;
+
+    &:hover {
+        background: rgba(239, 35, 60, 0.18);
+        transform: scale(1.08);
+    }
+}
+
+.addItemBtn {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 6px 14px;
+    border: 1.5px dashed $primary-color;
+    border-radius: 8px;
+    background: transparent;
+    color: $primary-color;
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+
+    &:hover {
+        background: rgba($primary-color, 0.06);
+        transform: translateY(-1px);
+    }
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(6px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
