@@ -13,9 +13,9 @@ const navItems = [
     { path: '/vendors', label: 'Vendors', icon: <FiUsers /> },
     { path: '/vendor-search', label: 'Vendor Search', icon: <FiSearch /> },
     { path: '/rfq', label: 'RFQs', icon: <FiFileText /> },
-    { path: '/quotes', label: 'Quotes', icon: <FiList /> },
+    // { path: '/quotes', label: 'Quotes', icon: <FiList /> },
     { path: '/comparison', label: 'Comparison', icon: <FiLayout /> },
-    { path: '/scorecard', label: 'Scorecard', icon: <FiPieChart /> },
+    // { path: '/scorecard', label: 'Scorecard', icon: <FiPieChart /> },
 ];
 
 const Sidebar: React.FC<SidebarProps> = ({ collapsed, toggleSidebar }) => {

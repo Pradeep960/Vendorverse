@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { FiPaperclip } from 'react-icons/fi';
 import type { RFQ } from '../../models/RFQ';
 import type { Vendor } from '../../models/Vendor';
 import { sendRFQEmail } from '../../services/emailService';
@@ -87,6 +88,14 @@ const EmailModal: React.FC<EmailModalProps> = ({ rfq, vendors, onClose }) => {
                                                     </div>
                                                 ))}
                                             </div>
+
+                                            {rfq.attachedFile && (
+                                                <div className="mt-4 p-2 bg-white border border-dashed rounded d-flex align-items-center gap-2">
+                                                    <FiPaperclip className="text-primary" />
+                                                    <span className="small text-secondary">Attachment: <strong>{rfq.attachedFile.name}</strong></span>
+                                                    <span className="badge bg-light text-primary border ms-auto">PDF</span>
+                                                </div>
+                                            )}
 
                                             <p className="mt-3 mb-0">Best Regards,<br />Vendorverse Procurement Team</p>
                                         </div>

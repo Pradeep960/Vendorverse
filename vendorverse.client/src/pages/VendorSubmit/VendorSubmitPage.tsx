@@ -6,7 +6,7 @@ import type { Vendor } from '../../models/Vendor';
 import type { Quote } from '../../models/Quote';
 import Card from '../../components/Card/Card';
 import Loader from '../../components/Loader/Loader';
-import { FiUploadCloud, FiFile, FiCheckCircle, FiX } from 'react-icons/fi';
+import { FiUploadCloud, FiFile, FiCheckCircle, FiX, FiInfo, FiCalendar, FiPackage, FiPaperclip, FiTag, FiFileText } from 'react-icons/fi';
 import styles from './VendorSubmit.module.scss';
 
 const VendorSubmitPage: React.FC = () => {
@@ -65,6 +65,18 @@ const VendorSubmitPage: React.FC = () => {
 
     const isFormValid = price !== '' && delivery !== '';
 
+    const handleViewPDF = (file: { name: string, data: string }) => {
+        const base64Content = file.data.split(',')[1];
+        const binary = atob(base64Content);
+        const array = [];
+        for (let i = 0; i < binary.length; i++) {
+            array.push(binary.charCodeAt(i));
+        }
+        const blob = new Blob([new Uint8Array(array)], { type: 'application/pdf' });
+        const url = URL.createObjectURL(blob);
+        window.open(url, '_blank');
+    };
+
     const handleSubmit = async () => {
         if (!isFormValid || !rfq || !vendor) return;
 
@@ -77,7 +89,8 @@ const VendorSubmitPage: React.FC = () => {
             delivery: Number(delivery),
             submittedAt: new Date().toISOString(),
             notes,
-            files: files.map(f => f.name), // Optionally save base64 if needed
+            files: files.map(f => f.name),
+            attachedFile: files.length > 0 ? files[0] : undefined, // Save first file for preview
         };
 
         await saveQuote(newQuote);
@@ -129,35 +142,79 @@ const VendorSubmitPage: React.FC = () => {
                     <p className="text-secondary">Please provide your pricing and delivery details for the requested items.</p>
                 </div>
 
-                <Card className="p-4 mb-4 border-0 shadow-sm">
-                    <h5 className="fw-bold mb-3 border-bottom pb-2">RFQ Details</h5>
-                    <div className="row mb-3">
-                        <div className="col-md-3 text-secondary fw-semibold">Title</div>
-                        <div className="col-md-9">{rfq.title}</div>
+                <Card className="p-4 mb-4 border-0 shadow-sm overflow-hidden">
+                    <div className="d-flex align-items-center mb-4 border-bottom pb-2">
+                        <div className="bg-primary bg-opacity-10 p-2 rounded-circle me-3">
+                            <FiInfo className="text-primary" size={24} />
+                        </div>
+                        <h5 className="fw-bold mb-0">Request for Quotation Details</h5>
                     </div>
-                    <div className="row mb-3">
-                        <div className="col-md-3 text-secondary fw-semibold">Description</div>
-                        <div className="col-md-9">{rfq.description}</div>
-                    </div>
-                    <div className="row mb-3">
-                        <div className="col-md-3 text-secondary fw-semibold">Quantity Required</div>
-                        <div className="col-md-9">{rfq.quantity}</div>
-                    </div>
-                    {rfq.attachedFile && (
-                        <div className="row">
-                            <div className="col-md-3 text-secondary fw-semibold">Document</div>
-                            <div className="col-md-9">
-                                <span className="badge bg-light text-primary border p-2">
-                                    <FiFile className="me-2" />
-                                    {rfq.attachedFile.name}
-                                </span>
+
+                    <div className="row g-4 mb-4">
+                        <div className="col-md-6">
+                            <label className="text-secondary small text-uppercase fw-bold d-block mb-1">
+                                <FiTag className="me-1" /> Item for Quotation
+                            </label>
+                            <div className="fs-4 fw-bold text-dark">{rfq.title}</div>
+                        </div>
+
+                        <div className="col-md-3">
+                            <label className="text-secondary small text-uppercase fw-bold d-block mb-1">
+                                <FiPackage className="me-1" /> Quantity
+                            </label>
+                            <div className="fs-5 fw-bold text-primary">{rfq.quantity} Units</div>
+                        </div>
+
+                        <div className="col-md-3">
+                            <label className="text-secondary small text-uppercase fw-bold d-block mb-1">
+                                <FiCalendar className="me-1" /> Deadline
+                            </label>
+                            <div className="fs-5 fw-bold text-danger">
+                                {rfq.deadline ? new Date(rfq.deadline).toLocaleDateString() : 'N/A'}
                             </div>
                         </div>
-                    )}
+                    </div>
+
+                    <div className="mb-4">
+                        <label className="text-secondary small text-uppercase fw-bold d-block mb-1">
+                            <FiFileText className="me-1" /> Product Details & Specifications
+                        </label>
+                        <div className="p-3 bg-light rounded text-dark" style={{ whiteSpace: 'pre-line', borderLeft: '4px solid #0061f2' }}>
+                            {rfq.description}
+                        </div>
+                    </div>
+
+                    <div className="row">
+                        <div className="col-md-6">
+                            <label className="text-secondary small text-uppercase fw-bold d-block mb-1">
+                                Created On
+                            </label>
+                            <div className="text-dark small">{new Date(rfq.createdAt).toLocaleDateString()}</div>
+                        </div>
+
+                        {rfq.attachedFile && (
+                            <div className="col-md-6 text-md-end mt-3 mt-md-0">
+                                <label className="text-secondary small text-uppercase fw-bold d-block mb-1">
+                                    Official Document
+                                </label>
+                                <button
+                                    className="btn btn-sm btn-outline-primary d-inline-flex align-items-center gap-2 px-3 py-2"
+                                    onClick={() => handleViewPDF(rfq.attachedFile!)}
+                                >
+                                    <FiPaperclip /> View Technical Specs PDF
+                                </button>
+                            </div>
+                        )}
+                    </div>
                 </Card>
 
                 <Card className="p-4 border-0 shadow-sm">
-                    <h5 className="fw-bold mb-4 border-bottom pb-2">Your Quotation</h5>
+                    <div className="d-flex justify-content-between align-items-center mb-4 border-bottom pb-2">
+                        <h5 className="fw-bold mb-0">Your Quotation</h5>
+                        <div className="badge bg-primary bg-opacity-10 text-primary px-3 py-2 border">
+                            Quoting for: <span className="fw-bold">{rfq.title}</span>
+                        </div>
+                    </div>
 
                     <div className="mb-3">
                         <label className={styles.formLabel}>Vendor Name</label>

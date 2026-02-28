@@ -104,6 +104,24 @@
   }
 }
 
+.editBtn {
+  background: rgba($primary-color, 0.12);
+  color: $primary-color;
+
+  &:hover {
+    background: rgba($primary-color, 0.2);
+  }
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: default;
+    background: rgba($primary-color, 0.08);
+    color: rgba($primary-color, 0.6);
+    transform: none;
+    box-shadow: none;
+  }
+}
+
 .deleteBtn {
   background: rgba(239, 35, 60, 0.15);
   color: #ef233c;

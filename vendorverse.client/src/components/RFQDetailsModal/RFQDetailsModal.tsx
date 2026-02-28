@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { FiFile, FiClock } from 'react-icons/fi';
+import { FiFile, FiClock, FiFileText } from 'react-icons/fi';
 import { getQuotes, getVendors } from '../../services/apiService';
 import type { RFQ } from '../../models/RFQ';
 import type { Quote } from '../../models/Quote';
@@ -29,6 +29,27 @@ const RFQDetailsModal: React.FC<RFQDetailsModalProps> = ({ rfq, onClose }) => {
         fetchDetails();
     }, [rfq.id]);
 
+    const handleViewPDF = (file: { name: string, data: string }) => {
+        const base64Content = file.data.split(',')[1];
+        const binary = atob(base64Content);
+        const array = [];
+        for (let i = 0; i < binary.length; i++) {
+            array.push(binary.charCodeAt(i));
+        }
+        const blob = new Blob([new Uint8Array(array)], { type: 'application/pdf' });
+        const url = URL.createObjectURL(blob);
+        window.open(url, '_blank');
+    };
+
+    const getStatusBadge = (status: string) => {
+        switch (status) {
+            case 'Pending': return <strong className="text-warning">Pending</strong>;
+            case 'Responses Received': return <strong className="text-info">Responses Received</strong>;
+            case 'Completed': return <strong className="text-success">Completed</strong>;
+            default: return <strong className="text-primary">{status}</strong>;
+        }
+    };
+
     return (
         <>
             <div className="modal-backdrop show" style={{ backgroundColor: 'rgba(15, 23, 42, 0.4)', backdropFilter: 'blur(4px)', zIndex: 1040 }} onClick={onClose} />
@@ -41,7 +62,7 @@ const RFQDetailsModal: React.FC<RFQDetailsModalProps> = ({ rfq, onClose }) => {
                                 <div className="text-secondary small d-flex gap-3">
                                     <span>Quantity: <strong>{rfq.quantity}</strong></span>
                                     <span>Budget: <strong>${rfq.budget}</strong></span>
-                                    <span>Status: <strong className="text-primary">{rfq.status}</strong></span>
+                                    <span>Status: {getStatusBadge(rfq.status)}</span>
                                 </div>
                             </div>
                             <button type="button" className="btn-close" onClick={onClose}></button>
@@ -81,17 +102,24 @@ const RFQDetailsModal: React.FC<RFQDetailsModalProps> = ({ rfq, onClose }) => {
                                                             <td>{q.deliveryTimeDays}</td>
                                                             <td>{new Date(q.submittedAt).toLocaleDateString()}</td>
                                                             <td>
-                                                                {q.files && q.files.length > 0 ? (
-                                                                    <div className="d-flex flex-column gap-1">
-                                                                        {q.files.map((file, idx) => (
+                                                                <div className="d-flex flex-column gap-2">
+                                                                    {q.attachedFile ? (
+                                                                        <button
+                                                                            className="btn btn-sm btn-outline-primary d-inline-flex align-items-center gap-2"
+                                                                            onClick={() => handleViewPDF(q.attachedFile!)}
+                                                                        >
+                                                                            <FiFileText size={14} /> View Quote PDF
+                                                                        </button>
+                                                                    ) : q.files && q.files.length > 0 ? (
+                                                                        q.files.map((file, idx) => (
                                                                             <span key={idx} className="badge bg-light text-primary border px-2 py-1">
                                                                                 <FiFile className="me-1" /> {file}
                                                                             </span>
-                                                                        ))}
-                                                                    </div>
-                                                                ) : (
-                                                                    <span className="text-secondary small">None</span>
-                                                                )}
+                                                                        ))
+                                                                    ) : (
+                                                                        <span className="text-secondary small">None</span>
+                                                                    )}
+                                                                </div>
                                                             </td>
                                                         </tr>
                                                     ))}

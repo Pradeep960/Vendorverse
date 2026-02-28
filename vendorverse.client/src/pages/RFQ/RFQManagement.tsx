@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import Card from '../../components/Card/Card';
 import Loader from '../../components/Loader/Loader';
-import { FiPlus, FiEye, FiClock, FiCheckCircle } from 'react-icons/fi';
+import { FiPlus, FiEye, FiClock, FiCheckCircle, FiFileText } from 'react-icons/fi';
 import { getRFQs } from '../../services/apiService';
 import type { RFQ } from '../../models/RFQ';
 import RFQCreateModal from '../../components/RFQCreateModal/RFQCreateModal';
@@ -34,11 +34,23 @@ const RFQManagement: React.FC = () => {
 
     const getStatusBadge = (status: string) => {
         switch (status) {
-            case 'Draft': return <span className="badge bg-secondary rounded-pill px-3 py-2"><FiClock className="me-1" /> Draft</span>;
-            case 'Sent': return <span className="badge bg-primary rounded-pill px-3 py-2"><FiCheckCircle className="me-1" /> Sent</span>;
-            case 'Closed': return <span className="badge bg-success rounded-pill px-3 py-2"><FiCheckCircle className="me-1" /> Closed</span>;
-            default: return null;
+            case 'Pending': return <span className="badge bg-warning text-dark rounded-pill px-3 py-2"><FiClock className="me-1" /> Pending</span>;
+            case 'Responses Received': return <span className="badge bg-info text-dark rounded-pill px-3 py-2"><FiCheckCircle className="me-1" /> Responses Received</span>;
+            case 'Completed': return <span className="badge bg-success rounded-pill px-3 py-2"><FiCheckCircle className="me-1" /> Completed</span>;
+            default: return <span className="badge bg-secondary rounded-pill px-3 py-2">{status}</span>;
         }
+    };
+
+    const handleViewPDF = (file: { name: string, data: string }) => {
+        const base64Content = file.data.split(',')[1];
+        const binary = atob(base64Content);
+        const array = [];
+        for (let i = 0; i < binary.length; i++) {
+            array.push(binary.charCodeAt(i));
+        }
+        const blob = new Blob([new Uint8Array(array)], { type: 'application/pdf' });
+        const url = URL.createObjectURL(blob);
+        window.open(url, '_blank');
     };
 
     if (loading) return <Loader />;
@@ -72,12 +84,16 @@ const RFQManagement: React.FC = () => {
 
                                     <div className="d-flex flex-wrap gap-4 text-secondary small fw-bold">
                                         <div>
-                                            <span className="text-muted d-block text-uppercase" style={{ fontSize: '10px' }}>Created</span>
-                                            {new Date(rfq.createdAt).toLocaleDateString()}
+                                            <span className="text-muted d-block text-uppercase" style={{ fontSize: '10px' }}>Quantity</span>
+                                            {rfq.quantity}
                                         </div>
                                         <div>
-                                            <span className="text-muted d-block text-uppercase" style={{ fontSize: '10px' }}>Deadline</span>
-                                            {rfq.deadline ? new Date(rfq.deadline).toLocaleDateString() : 'N/A'}
+                                            <span className="text-muted d-block text-uppercase" style={{ fontSize: '10px' }}>Budget</span>
+                                            ${rfq.budget}
+                                        </div>
+                                        <div>
+                                            <span className="text-muted d-block text-uppercase" style={{ fontSize: '10px' }}>Created</span>
+                                            {new Date(rfq.createdAt).toLocaleDateString()}
                                         </div>
                                         <div>
                                             <span className="text-muted d-block text-uppercase" style={{ fontSize: '10px' }}>Vendors</span>
@@ -93,6 +109,14 @@ const RFQManagement: React.FC = () => {
                                     >
                                         <FiEye className="me-2" /> View Details
                                     </button>
+                                    {rfq.attachedFile && (
+                                        <button
+                                            className="btn btn-outline-secondary shadow-sm"
+                                            onClick={() => handleViewPDF(rfq.attachedFile!)}
+                                        >
+                                            <FiFileText className="me-2" /> View PDF
+                                        </button>
+                                    )}
                                 </div>
                             </div>
                         </Card>

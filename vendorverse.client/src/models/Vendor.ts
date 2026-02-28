@@ -13,4 +13,6 @@ export interface Vendor {
     availableQuantity?: number;
     yearEstablished?: number;
     isIsoCertified?: boolean;
+    rating?: number; // 1-5
+    reviewsCount?: number;
 }
