@@ -26,14 +26,19 @@ export const getGraphClient = (accessToken: string) => {
     });
 };
 
-export const sendEmailViaGraph = async (to: string, subject: string, body: string): Promise<boolean> => {
+export const sendEmailViaGraph = async (
+    to: string,
+    subject: string,
+    body: string,
+    attachments?: Array<{ name: string, contentBytes: string, contentType: string }>
+): Promise<boolean> => {
     try {
         const token = await getAccessToken();
         if (!token) return false;
 
         const client = getGraphClient(token);
 
-        const email = {
+        const email: any = {
             message: {
                 subject: subject,
                 body: {
@@ -46,6 +51,15 @@ export const sendEmailViaGraph = async (to: string, subject: string, body: strin
             },
             saveToSentItems: "true"
         };
+
+        if (attachments && attachments.length > 0) {
+            email.message.attachments = attachments.map(att => ({
+                "@odata.type": "#microsoft.graph.fileAttachment",
+                "name": att.name,
+                "contentType": att.contentType,
+                "contentBytes": att.contentBytes
+            }));
+        }
 
         await client.api("/me/sendMail").post(email);
         return true;

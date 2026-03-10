@@ -127,6 +127,12 @@ const VendorSearch: React.FC = () => {
         });
     };
 
+    const DEMO_EMAILS = [
+        'pradeep.p@demo.com',
+        'procurement-team@demo.com',
+        'vendor-relations@demo.com'
+    ];
+
     // --- Search ---
     const handleSearch = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -141,8 +147,12 @@ const VendorSearch: React.FC = () => {
         setSearched(false);
         try {
             const result = await searchVendorsApi(form);
-            let filtered = [...result];
-            setVendors(filtered);
+            // Enrich with demo emails if missing
+            const enriched = result.map((v, i) => ({
+                ...v,
+                contact_email: v.contact_email || v.email || DEMO_EMAILS[i % DEMO_EMAILS.length]
+            }));
+            setVendors(enriched);
             setSearched(true);
             setSelectedIds(new Set()); // Clear selection on new search
             handleReset();
@@ -195,6 +205,7 @@ const VendorSearch: React.FC = () => {
         const certs = (v as any).all_certifications ||
             (v as any).compliance?.certifications_found ||
             (v as any).certifications ||
+            (v as any).certifications_found ||
             [];
         return Array.isArray(certs) ? certs : [];
     };
@@ -300,7 +311,7 @@ const VendorSearch: React.FC = () => {
                                         <div className="row g-3 mb-3">
                                             <div className="col-md-6">
                                                 <label htmlFor="location" className="form-label text-secondary small fw-bold mb-1">
-                                                    Location <span className="text-danger">*</span>
+                                                    Delivery Location <span className="text-danger">*</span>
                                                 </label>
                                                 <div className={`input-group ${errors.location ? 'has-validation' : ''}`}>
                                                     <span className={`input-group-text bg-light border-end-0 ${errors.location ? 'border-danger' : ''}`}><FiMapPin className="text-muted" /></span>
@@ -484,7 +495,7 @@ const VendorSearch: React.FC = () => {
                                             <div className="pt-2 mt-2 border-top">
                                                 <div className="d-flex align-items-center mb-1">
                                                     <FiMail className="me-2 text-primary" size={14} />
-                                                    <span className="text-dark">{(vendor as any).contact_email || (vendor as any).email || 'contact@vendor.com'}</span>
+                                                    <span className="text-dark">{(vendor as any).contact_email || (vendor as any).email}</span>
                                                 </div>
                                                 <div className="d-flex align-items-center">
                                                     <FiPhone className="me-2 text-primary" size={14} />
@@ -495,7 +506,7 @@ const VendorSearch: React.FC = () => {
                                     </div>
 
                                     {/* Footer */}
-                                    <div className="card-footer bg-transparent border-top p-3 d-flex justify-content-between align-items-center">
+                                    <div className="card-footer bg-transparent border-top p-3 d-flex justify-content-end align-items-center">
                                         <div className="text-success small fw-bold">
                                             {((vendor as any).url || (vendor as any).website) && (
                                                 <a href={(vendor as any).url || (vendor as any).website} target="_blank" rel="noreferrer" className="text-decoration-none text-success">
@@ -503,13 +514,13 @@ const VendorSearch: React.FC = () => {
                                                 </a>
                                             )}
                                         </div>
-                                        <button
+                                        {/* <button
                                             className="btn btn-primary btn-sm d-flex align-items-center rounded-pill px-3"
                                             onClick={() => handleViewDetails(vendor)}
                                             aria-label={`View details for ${vendor.vendor_name || vendor.vendor_name || 'vendor'}`}
                                         >
                                             <FiEye className="me-1" /> Details
-                                        </button>
+                                        </button> */}
                                     </div>
                                 </div>
                             </div>
@@ -538,14 +549,15 @@ const VendorSearch: React.FC = () => {
                 selectedVendors={vendors
                     .filter(v => selectedIds.has((v as any).id || (v as any).rank?.toString() || ''))
                     .map(v => ({
-                        ...v,
                         id: (v as any).id || (v as any).rank?.toString() || '',
                         name: (v as any).vendor_name || (v as any).name || 'Unknown Vendor',
                         category: (v as any).market_segment || (v as any).category || 'Other',
                         location: (v as any).location_exact || (v as any).location || 'Unknown',
-                        email: (v as any).contact_email || (v as any).email || 'contact@vendor.com',
-                        phone: (v as any).contact_phone || (v as any).phone || 'N/A'
-                    } as unknown as Vendor))
+                        email: (v as any).contact_email || (v as any).email,
+                        phone: (v as any).contact_phone || (v as any).phone || 'N/A',
+                        description: (v as any).description || '',
+                        certifications: getVendorCerts(v)
+                    } as Vendor))
                 }
             />
         </div>

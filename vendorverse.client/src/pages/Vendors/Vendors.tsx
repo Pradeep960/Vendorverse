@@ -119,7 +119,7 @@ const Vendors: React.FC = () => {
     return (
         <div>
             <div className="d-flex justify-content-between align-items-center mb-4">
-                <h3 className="fw-bold text-dark">Vendor Management</h3>
+                <h3 className="fw-bold text-dark">Vendors</h3>
                 <div className="d-flex gap-2">
                     <button
                         className="btn btn-outline-primary d-flex align-items-center"

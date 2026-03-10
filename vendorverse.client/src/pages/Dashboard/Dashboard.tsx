@@ -40,7 +40,7 @@ const Dashboard: React.FC = () => {
                     { title: 'Total Vendors', value: vendors.length, icon: <FiUsers className="text-primary-custom" size={28} />, bg: 'bg-primary bg-opacity-10' },
                     { title: 'Active RFQs', value: rfqs.filter(r => r.status !== 'Closed').length, icon: <FiFileText className="text-success" size={28} />, bg: 'bg-success bg-opacity-10' },
                     { title: 'Quotes Received', value: quotes.length, icon: <FiList className="text-warning" size={28} />, bg: 'bg-warning bg-opacity-10' },
-                    { title: 'Top Vendor Score', value: '96%', icon: <FiStar className="text-danger" size={28} />, bg: 'bg-danger bg-opacity-10' }
+                    // { title: 'Top Vendor Score', value: '96%', icon: <FiStar className="text-danger" size={28} />, bg: 'bg-danger bg-opacity-10' }
                 ].map((stat, idx) => (
                     <div className="col-12 col-md-6 col-lg-3" key={idx}>
                         <Card className="h-100">

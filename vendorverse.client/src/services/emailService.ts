@@ -14,7 +14,7 @@ export const sendRFQEmail = async (rfq: RFQ, vendor: Vendor): Promise<boolean> =
             <div style="font-family: Arial, sans-serif; padding: 20px;">
                 <h2>Request for Quotation</h2>
                 <p>Dear ${vendor.name},</p>
-                <p>We are requesting a quote for the following RFQ: <strong>${rfq.title}</strong>.</p>
+                <p>We are requesting a quote for: <strong>${rfq.title}</strong>.</p>
                 <p>Description: ${rfq.description}</p>
                 <div style="margin: 20px 0;">
                     <a href="${submissionLink}" 
@@ -22,11 +22,24 @@ export const sendRFQEmail = async (rfq: RFQ, vendor: Vendor): Promise<boolean> =
                        Submit Your Quotation
                     </a>
                 </div>
+                <p>Please find the detailed RFQ document attached to this email.</p>
                 <p>Best Regards,<br/>Vendorverse Procurement Team</p>
             </div>
         `;
 
-        return await sendEmailViaGraph(vendor.email, subject, body);
+        const attachments = [];
+        if (rfq.attachedFile) {
+            // Data URI format: "data:application/pdf;base64,JVBERi0xLjc..."
+            // Graph API expects only the base64 string
+            const base64Content = rfq.attachedFile.data.split(',')[1];
+            attachments.push({
+                name: rfq.attachedFile.name,
+                contentType: 'application/pdf',
+                contentBytes: base64Content
+            });
+        }
+
+        return await sendEmailViaGraph(vendor.email, subject, body, attachments);
     } catch (error) {
         console.error(`Failed to send RFQ email to ${vendor.email}:`, error);
         return false;

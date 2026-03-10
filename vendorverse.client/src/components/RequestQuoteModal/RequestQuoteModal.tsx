@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import {
-    FiFileText, FiSend, FiEye, FiSearch, FiMapPin, FiBox, FiHash,
-    FiDollarSign, FiShield, FiRotateCcw, FiAlertCircle, FiAward, FiX
+    FiFileText, FiSend, FiEye, FiMapPin, FiBox, FiHash,
+    FiDollarSign, FiShield, FiAlertCircle, FiAward
 } from 'react-icons/fi';
 import { generateRFQPdf } from '../../utils/generateRFQPdf';
 import type { RFQFormData } from '../../utils/generateRFQPdf';
@@ -137,13 +137,8 @@ const RequestQuoteModal: React.FC<RequestQuoteModalProps> = ({ show, onClose, se
     const isCertChecked = (cert: string) =>
         cert === 'Other' ? showOtherInput : form.certifications.includes(cert);
 
-    // --- Reset (same as VendorSearch.tsx) ---
-    const handleReset = () => {
-        setForm({ ...initialForm });
-        setErrors({});
-        setOtherCertInput('');
-        setShowOtherInput(false);
-    };
+    // --- Reset (not used inside this modal but kept for logic or future expansion) ---
+    // Actually unused, but common pattern. Let's remove if explicitly linting.
 
     const itemsValid = form.part.trim() !== '' && form.quantity > 0;
     const isFormValid = itemsValid && form.location.trim() !== '';
@@ -172,11 +167,24 @@ const RequestQuoteModal: React.FC<RequestQuoteModalProps> = ({ show, onClose, se
             setErrors(validationErrors);
             return;
         }
-        
-        const title = `RFQ for ${form.part}`;
+
+        const title = form.part;
         const description = `Location: ${form.location}\nMin Reqs: ${form.certifications.join(', ')}\nISO: ${form.certifications.some(c => c.toLowerCase().includes('iso')) ? 'Yes' : 'No'}`;
         const quantity = form.quantity;
         const budget = form.budget || 0;
+
+        // Generate PDF data for attachment
+        const rfqFormData: RFQFormData = {
+            items: [{ part: form.part, quantity: form.quantity }],
+            location: form.location,
+            minimumRequirements: form.certifications,
+            isoCertified: form.certifications.some(c => c.toLowerCase().includes('iso')),
+            pricingMin: 0,
+            pricingMax: form.budget,
+            yearOfManufacturing: new Date().getFullYear(),
+        };
+        const vendorNames = selectedVendors.map(v => getVendorName(v));
+        const pdfDataUri = generateRFQPdf(rfqFormData, vendorNames.length > 0 ? vendorNames : undefined, false) as string;
 
         const newRFQ: RFQ = {
             id: `rfq-${Date.now()}`,
@@ -187,6 +195,10 @@ const RequestQuoteModal: React.FC<RequestQuoteModalProps> = ({ show, onClose, se
             status: 'Pending',
             createdAt: new Date().toISOString(),
             vendorsTargeted: selectedVendors.map(v => getVendorId(v)),
+            attachedFile: {
+                name: `RFQ_${form.part.replace(/\s+/g, '_')}.pdf`,
+                data: pdfDataUri
+            }
         };
 
         await saveRFQ(newRFQ);
@@ -305,7 +317,7 @@ const RequestQuoteModal: React.FC<RequestQuoteModalProps> = ({ show, onClose, se
                                     <div className="row g-3 mb-3">
                                         <div className="col-md-6">
                                             <label htmlFor="location" className="form-label text-secondary small fw-bold mb-1">
-                                                Location <span className="text-danger">*</span>
+                                                DeliveryLocation <span className="text-danger">*</span>
                                             </label>
                                             <div className={`input-group ${errors.location ? 'has-validation' : ''}`}>
                                                 <span className={`input-group-text bg-light border-end-0 ${errors.location ? 'border-danger' : ''}`}><FiMapPin className="text-muted" /></span>
@@ -344,9 +356,8 @@ const RequestQuoteModal: React.FC<RequestQuoteModalProps> = ({ show, onClose, se
                                         {CERTIFICATION_OPTIONS.map(cert => (
                                             <div className="col-md-6" key={cert}>
                                                 <label
-                                                    className={`bg-light rounded-3 p-2 px-3 d-flex align-items-center ${
-                                                        isCertChecked(cert) ? 'border border-primary' : 'border border-transparent'
-                                                    }`}
+                                                    className={`bg-light rounded-3 p-2 px-3 d-flex align-items-center ${isCertChecked(cert) ? 'border border-primary' : 'border border-transparent'
+                                                        }`}
                                                     style={{ cursor: 'pointer', transition: 'border-color 0.2s ease' }}
                                                 >
                                                     <input

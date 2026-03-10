@@ -16,11 +16,11 @@ export interface RFQFormData {
 }
 
 const COMPANY_NAME = 'VendorVerse Inc.';
-const COMPANY_ADDRESS = '123 Enterprise Blvd, Suite 500, New York, NY 10001';
+const COMPANY_ADDRESS = ' ';
 const COMPANY_EMAIL = 'procurement@vendorverse.com';
-const COMPANY_PHONE = '+1 (212) 555-0199';
+const COMPANY_PHONE = '+1 (212) xxxx-xxxx';
 
-export function generateRFQPdf(formData: RFQFormData, vendorNames?: string[]): void {
+export function generateRFQPdf(formData: RFQFormData, vendorNames?: string[], preview: boolean = true): string | void {
     const doc = new jsPDF();
     const pageWidth = doc.internal.pageSize.getWidth();
     const margin = 20;
@@ -182,8 +182,12 @@ export function generateRFQPdf(formData: RFQFormData, vendorNames?: string[]): v
     doc.text(`${COMPANY_EMAIL}  |  ${COMPANY_PHONE}`, margin, footerY + 5);
     doc.text('Confidential — For intended recipients only', pageWidth - margin, footerY, { align: 'right' });
 
-    // ─── Open in new tab ───
-    const pdfBlob = doc.output('blob');
-    const url = URL.createObjectURL(pdfBlob);
-    window.open(url, '_blank');
+    // ─── Return or Preview ───
+    if (preview) {
+        const pdfBlob = doc.output('blob');
+        const url = URL.createObjectURL(pdfBlob);
+        window.open(url, '_blank');
+    } else {
+        return doc.output('datauristring');
+    }
 }
