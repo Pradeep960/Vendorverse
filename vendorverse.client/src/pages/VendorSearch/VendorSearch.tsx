@@ -128,9 +128,43 @@ const VendorSearch: React.FC = () => {
     };
 
     const DEMO_EMAILS = [
-        'pradeep.p@demo.com',
-        'procurement-team@demo.com',
-        'vendor-relations@demo.com'
+        'pradeep.p@pravaltech.com',
+        'nithin.t@pravaltech.com'
+    ];
+
+    const LOCAL_TEST_MODE = false; // Set to false to use actual API
+
+    const MOCK_VENDORS: VendorResponse[] = [
+        {
+            rank: 1,
+            vendor_name: 'Fastening Solutions Ltd',
+            location_exact: 'Mumbai, India',
+            all_certifications: ['ISO 9001', 'AS9100'],
+            contact_email: 'pradeep.p@pravaltech.com',
+            contact_phone: '+91 98765 43210',
+            description: 'Leading manufacturer of industrial fasteners and bearings.',
+            market_segment: 'Industrial Components'
+        } as any,
+        {
+            rank: 2,
+            vendor_name: 'Precision Bearings Corp',
+            location_exact: 'Pune, India',
+            all_certifications: ['ISO 14001'],
+            contact_email: 'nithin.t@pravaltech.com',
+            contact_phone: '+91 98765 43211',
+            description: 'Specializing in high-precision ball bearings for aerospace.',
+            market_segment: 'Aerospace'
+        } as any,
+        {
+            rank: 3,
+            vendor_name: 'Global Parts Hub',
+            location_exact: 'Bangalore, India',
+            all_certifications: ['ISO 9001', 'ISO 27001'],
+            contact_email: 'pradeep.p@pravaltech.com',
+            contact_phone: '+91 98765 43212',
+            description: 'Wide range of engineering stockists and distributors.',
+            market_segment: 'Electronics'
+        } as any
     ];
 
     // --- Search ---
@@ -145,18 +179,29 @@ const VendorSearch: React.FC = () => {
         setShowModal(false);
         setLoading(true);
         setSearched(false);
+
         try {
-            const result = await searchVendorsApi(form);
+            let result: VendorResponse[] = [];
+
+            if (LOCAL_TEST_MODE) {
+                // Testing locally with random/mock data
+                await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate delay
+                result = MOCK_VENDORS;
+            } else {
+                result = await searchVendorsApi(form);
+            }
+
             // Enrich with demo emails if missing
             const enriched = result.map((v, i) => ({
                 ...v,
-                contact_email: v.contact_email || v.email || DEMO_EMAILS[i % DEMO_EMAILS.length]
+                contact_email: (v as any).contact_email || (v as any).email || DEMO_EMAILS[i % DEMO_EMAILS.length]
             }));
             setVendors(enriched);
             setSearched(true);
             setSelectedIds(new Set()); // Clear selection on new search
-            handleReset();
+            // REMOVED: handleReset(); - We need to keep the form data for the RFQ modal
         } catch (error) {
+            console.error("Search failed:", error);
             setSearched(true);
         } finally {
             setLoading(false);
@@ -228,7 +273,7 @@ const VendorSearch: React.FC = () => {
                             className="btn btn-outline-primary d-flex align-items-center shadow-sm"
                             onClick={() => setShowQuoteModal(true)}
                         >
-                            <FiFileText className="me-2" /> Request Quote ({selectedIds.size})
+                            <FiFileText className="me-2" /> Request RFQ's ({selectedIds.size})
                         </button>
                     )}
                     <button
@@ -495,7 +540,7 @@ const VendorSearch: React.FC = () => {
                                             <div className="pt-2 mt-2 border-top">
                                                 <div className="d-flex align-items-center mb-1">
                                                     <FiMail className="me-2 text-primary" size={14} />
-                                                    <span className="text-dark">{(vendor as any).contact_email || (vendor as any).email}</span>
+                                                    <span className="text-dark">{DEMO_EMAILS[0]}</span>
                                                 </div>
                                                 <div className="d-flex align-items-center">
                                                     <FiPhone className="me-2 text-primary" size={14} />
@@ -546,6 +591,7 @@ const VendorSearch: React.FC = () => {
             <RequestQuoteModal
                 show={showQuoteModal}
                 onClose={() => setShowQuoteModal(false)}
+                initialData={form}
                 selectedVendors={vendors
                     .filter(v => selectedIds.has((v as any).id || (v as any).rank?.toString() || ''))
                     .map(v => ({

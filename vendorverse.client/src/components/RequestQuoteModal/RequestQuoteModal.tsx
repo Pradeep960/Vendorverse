@@ -15,6 +15,7 @@ interface RequestQuoteModalProps {
     show: boolean;
     onClose: () => void;
     selectedVendors: Vendor[];
+    initialData?: SearchForm;
 }
 
 // Using the same form structure as VendorSearch.tsx
@@ -54,8 +55,8 @@ interface FormErrors {
     otherCertText?: string;
 }
 
-const RequestQuoteModal: React.FC<RequestQuoteModalProps> = ({ show, onClose, selectedVendors }) => {
-    const [form, setForm] = useState<SearchForm>(initialForm);
+const RequestQuoteModal: React.FC<RequestQuoteModalProps> = ({ show, onClose, selectedVendors, initialData }) => {
+    const [form, setForm] = useState<SearchForm>(initialData || initialForm);
     const [errors, setErrors] = useState<FormErrors>({});
     const [sent, setSent] = useState(false);
     const [showEmailModal, setShowEmailModal] = useState(false);
@@ -63,17 +64,46 @@ const RequestQuoteModal: React.FC<RequestQuoteModalProps> = ({ show, onClose, se
     const [showOtherInput, setShowOtherInput] = useState(false);
     const [otherCertInput, setOtherCertInput] = useState('');
 
+
+    // Reset internal state when modal opens/closes
+    React.useEffect(() => {
+        if (show) {
+            setSent(false);
+            setCreatedRFQ(null);
+            setShowEmailModal(false);
+            setErrors({});
+
+            if (initialData) {
+                setForm(initialData);
+                // Trigger auto-send if data is likely valid
+                const performAutoSend = async () => {
+                    try {
+                        await handleSend(initialData);
+                    } catch (err) {
+                        console.error("Auto-send failed:", err);
+                    }
+                    // Note: handleSend sets showEmailModal which hides this view
+                };
+                performAutoSend();
+            } else {
+                setForm(initialForm);
+            }
+        }
+    }, [show]);
+
+
+
     // This remains early return so we don't render anything if neither modal is shown
     if (!show && !showEmailModal) return null;
 
-    // --- Validation (same as VendorSearch.tsx) ---
-    const validateForm = (): FormErrors => {
+    // --- Validation (supports direct input) ---
+    const validateForm = (data: SearchForm = form): FormErrors => {
         const newErrors: FormErrors = {};
-        if (!form.part.trim()) newErrors.part = 'Part is required';
-        if (!form.quantity) newErrors.quantity = 'Quantity is required';
-        else if (Number(form.quantity) <= 0) newErrors.quantity = 'Must be greater than 0';
-        if (!form.location.trim()) newErrors.location = 'Location is required';
-        if (form.budget && Number(form.budget) < 0) newErrors.pricingRange = 'Budget cannot be negative';
+        if (!data.part.trim()) newErrors.part = 'Part is required';
+        if (!data.quantity) newErrors.quantity = 'Quantity is required';
+        else if (Number(data.quantity) <= 0) newErrors.quantity = 'Must be greater than 0';
+        if (!data.location.trim()) newErrors.location = 'Location is required';
+        if (data.budget && Number(data.budget) < 0) newErrors.pricingRange = 'Budget cannot be negative';
         return newErrors;
     };
 
@@ -161,26 +191,27 @@ const RequestQuoteModal: React.FC<RequestQuoteModalProps> = ({ show, onClose, se
         generateRFQPdf(rfqFormData, vendorNames.length > 0 ? vendorNames : undefined);
     };
 
-    const handleSend = async () => {
-        const validationErrors = validateForm();
+    const handleSend = async (overrideData?: SearchForm) => {
+        const dataToUse = overrideData || form;
+        const validationErrors = validateForm(dataToUse);
         if (Object.keys(validationErrors).length > 0) {
             setErrors(validationErrors);
             return;
         }
 
-        const title = form.part;
-        const description = `Location: ${form.location}\nMin Reqs: ${form.certifications.join(', ')}\nISO: ${form.certifications.some(c => c.toLowerCase().includes('iso')) ? 'Yes' : 'No'}`;
-        const quantity = form.quantity;
-        const budget = form.budget || 0;
+        const title = dataToUse.part;
+        const description = `Location: ${dataToUse.location}\nMin Reqs: ${dataToUse.certifications.join(', ')}\nISO: ${dataToUse.certifications.some(c => c.toLowerCase().includes('iso')) ? 'Yes' : 'No'}`;
+        const quantity = dataToUse.quantity;
+        const budget = dataToUse.budget || 0;
 
         // Generate PDF data for attachment
         const rfqFormData: RFQFormData = {
-            items: [{ part: form.part, quantity: form.quantity }],
-            location: form.location,
-            minimumRequirements: form.certifications,
-            isoCertified: form.certifications.some(c => c.toLowerCase().includes('iso')),
+            items: [{ part: dataToUse.part, quantity: dataToUse.quantity }],
+            location: dataToUse.location,
+            minimumRequirements: dataToUse.certifications,
+            isoCertified: dataToUse.certifications.some(c => c.toLowerCase().includes('iso')),
             pricingMin: 0,
-            pricingMax: form.budget,
+            pricingMax: dataToUse.budget,
             yearOfManufacturing: new Date().getFullYear(),
         };
         const vendorNames = selectedVendors.map(v => getVendorName(v));
@@ -196,7 +227,7 @@ const RequestQuoteModal: React.FC<RequestQuoteModalProps> = ({ show, onClose, se
             createdAt: new Date().toISOString(),
             vendorsTargeted: selectedVendors.map(v => getVendorId(v)),
             attachedFile: {
-                name: `RFQ_${form.part.replace(/\s+/g, '_')}.pdf`,
+                name: `RFQ_${dataToUse.part.replace(/\s+/g, '_')}.pdf`,
                 data: pdfDataUri
             }
         };
@@ -231,23 +262,50 @@ const RequestQuoteModal: React.FC<RequestQuoteModalProps> = ({ show, onClose, se
         );
     }
 
-    // Needed right before return so the actual form hides if the parent 'show' is false but we were still capturing it (shouldn't happen with the logic above)
     if (!show) return null;
 
+    // --- CASE 1: AUTO-ADVANCE LOADING STATE ---
+    // Show this IF initialData exists AND we haven't switched to EmailModal yet AND no errors
+    if (initialData && !showEmailModal && Object.keys(errors).length === 0) {
+        return (
+            <>
+                <div className="modal-backdrop show" style={{ backgroundColor: 'rgba(15, 23, 42, 0.6)', backdropFilter: 'blur(4px)', zIndex: 1050 }} />
+                <div className="modal d-block" tabIndex={-1} style={{ zIndex: 1060 }}>
+                    <div className="modal-dialog modal-dialog-centered">
+                        <div className="modal-content" style={{ borderRadius: '16px', border: 'none', boxShadow: '0 20px 40px rgba(0,0,0,0.2)' }}>
+                            <div className="modal-header bg-light border-bottom">
+                                <h5 className="modal-title fw-bold text-dark">Send RFQ to selected vendors</h5>
+                                <button type="button" className="btn-close" onClick={onClose} />
+                            </div>
+                            <div className="modal-body text-center py-5">
+                                <div className="spinner-border text-primary mb-3" role="status"></div>
+                                <p className="text-secondary fw-medium">Preparing your Request for Quotation...</p>
+                                <p className="text-muted small">Targeting {selectedVendors.length} selected vendors</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </>
+        );
+    }
+
+    // --- CASE 2: REGULAR FORM (Vendors tab or Search validation fail) ---
     return (
         <>
             {/* Backdrop */}
             <div
                 className={`modal-backdrop show ${styles.modalOverlay}`}
                 onClick={handleClose}
+                style={{ zIndex: 1040 }}
             />
 
-            {/* Modal */}
+            {/* Modal Container */}
             <div
                 className="modal d-block"
                 tabIndex={-1}
                 role="dialog"
                 onClick={handleClose}
+                style={{ zIndex: 1050 }}
             >
                 <div
                     className="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable"
@@ -279,7 +337,7 @@ const RequestQuoteModal: React.FC<RequestQuoteModalProps> = ({ show, onClose, se
                                 </div>
                             ) : (
                                 <form onSubmit={e => e.preventDefault()}>
-                                    {/* Part & Quantity - Same as VendorSearch.tsx */}
+                                    {/* Part & Quantity */}
                                     <div className="row g-3 mb-3">
                                         <div className="col-md-6">
                                             <label htmlFor="part" className="form-label text-secondary small fw-bold mb-1">
@@ -313,11 +371,11 @@ const RequestQuoteModal: React.FC<RequestQuoteModalProps> = ({ show, onClose, se
                                         </div>
                                     </div>
 
-                                    {/* Location & Budget - Same as VendorSearch.tsx */}
+                                    {/* Location & Budget */}
                                     <div className="row g-3 mb-3">
                                         <div className="col-md-6">
                                             <label htmlFor="location" className="form-label text-secondary small fw-bold mb-1">
-                                                DeliveryLocation <span className="text-danger">*</span>
+                                                Delivery Location <span className="text-danger">*</span>
                                             </label>
                                             <div className={`input-group ${errors.location ? 'has-validation' : ''}`}>
                                                 <span className={`input-group-text bg-light border-end-0 ${errors.location ? 'border-danger' : ''}`}><FiMapPin className="text-muted" /></span>
@@ -346,7 +404,7 @@ const RequestQuoteModal: React.FC<RequestQuoteModalProps> = ({ show, onClose, se
                                         </div>
                                     </div>
 
-                                    {/* Certifications - Same as VendorSearch.tsx */}
+                                    {/* Certifications */}
                                     <hr className="my-3" />
                                     <h6 className="fw-bold text-dark mb-3">
                                         <FiShield className="me-2 text-primary" />Certified By
@@ -373,7 +431,6 @@ const RequestQuoteModal: React.FC<RequestQuoteModalProps> = ({ show, onClose, se
                                             </div>
                                         ))}
 
-                                        {/* Other certification text input */}
                                         {showOtherInput && (
                                             <div className="col-12 mt-2">
                                                 <div className="input-group">
@@ -400,12 +457,6 @@ const RequestQuoteModal: React.FC<RequestQuoteModalProps> = ({ show, onClose, se
                         {/* Footer */}
                         {!sent && (
                             <div className={`modal-footer ${styles.modalFooter}`}>
-                                {/* {selectedVendors.length > 0 && (
-                                    <span className={styles.vendorInfo}>
-                                        <strong>{selectedVendors.length}</strong> vendor{selectedVendors.length !== 1 ? 's' : ''} selected
-                                    </span>
-                                )} */}
-
                                 <button
                                     type="button"
                                     className={`${styles.footerBtn} ${styles.previewBtn}`}
@@ -419,7 +470,7 @@ const RequestQuoteModal: React.FC<RequestQuoteModalProps> = ({ show, onClose, se
                                 <button
                                     type="button"
                                     className={`${styles.footerBtn} ${styles.sendBtn}`}
-                                    onClick={handleSend}
+                                    onClick={() => handleSend()}
                                     disabled={!isFormValid || selectedVendors.length === 0}
                                     title={selectedVendors.length === 0 ? 'Select vendors first' : 'Send to selected vendors'}
                                 >

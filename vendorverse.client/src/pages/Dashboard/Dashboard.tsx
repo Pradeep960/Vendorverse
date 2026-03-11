@@ -67,7 +67,7 @@ const Dashboard: React.FC = () => {
                                     <tr>
                                         <th>Title</th>
                                         <th>Status</th>
-                                        <th>Deadline</th>
+                                        {/* <th>Deadline</th> */}
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -79,7 +79,7 @@ const Dashboard: React.FC = () => {
                                                     {rfq.status}
                                                 </span>
                                             </td>
-                                            <td className="text-secondary">{new Date(rfq.deadline).toLocaleDateString()}</td>
+                                            {/* <td className="text-secondary">{new Date(rfq.deadline).toLocaleDateString()}</td> */}
                                         </tr>
                                     ))}
                                 </tbody>
