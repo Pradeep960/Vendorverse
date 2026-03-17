@@ -10,8 +10,8 @@ interface SidebarProps {
 
 const navItems = [
     { path: '/dashboard', label: 'Dashboard', icon: <FiHome /> },
-    { path: '/vendors', label: 'Vendors', icon: <FiUsers /> },
     { path: '/vendor-search', label: 'Vendor Search', icon: <FiSearch /> },
+    { path: '/vendors', label: 'Vendors', icon: <FiUsers /> },
     { path: '/rfq', label: 'RFQs', icon: <FiFileText /> },
     // { path: '/quotes', label: 'Quotes', icon: <FiList /> },
     { path: '/comparison', label: 'Comparison', icon: <FiLayout /> },

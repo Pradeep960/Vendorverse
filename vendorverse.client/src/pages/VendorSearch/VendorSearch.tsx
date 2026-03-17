@@ -599,7 +599,7 @@ const VendorSearch: React.FC = () => {
                         name: (v as any).vendor_name || (v as any).name || 'Unknown Vendor',
                         category: (v as any).market_segment || (v as any).category || 'Other',
                         location: (v as any).location_exact || (v as any).location || 'Unknown',
-                        email: (v as any).contact_email || (v as any).email,
+                        email: DEMO_EMAILS[0],
                         phone: (v as any).contact_phone || (v as any).phone || 'N/A',
                         description: (v as any).description || '',
                         certifications: getVendorCerts(v)
